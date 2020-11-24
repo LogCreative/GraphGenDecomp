@@ -5,7 +5,7 @@
 int main(int argc, char* argv[]) {
 #ifdef _DEBUG
 	GraphGen gg("1.txt", discrete, Graph);
-	gg.newGraph(1000);
+	gg.NewGraph(1000);
 #else
 	if (argc == 1) error("Please assign the file parameters.");
 	string directory = argv[1];			// 第一个参数作为文件参数
@@ -35,8 +35,8 @@ int main(int argc, char* argv[]) {
 	GraphGen gg(directory, _nt, _et);
 	string mode = argv[2];
 	int quantity = stoi(argv[3]);
-	if (mode == "-n") gg.newGraph(quantity);
-	else if (mode == "-a") gg.appendGraph(quantity);
+	if (mode == "-n") gg.NewGraph(quantity);
+	else if (mode == "-a") gg.AppendGraph(quantity);
 	else error("No operation was called.");
 #endif
 	return 0;

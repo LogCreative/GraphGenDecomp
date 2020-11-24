@@ -6,16 +6,16 @@ GraphGen::GraphGen(string _directory, nodeType _nt, edgeType _et):
 	
 }
 
-void GraphGen::newGraph(int x) {
+void GraphGen::NewGraph(int x) {
 	fstream fs(directory, fstream::out);
 	int nodeLine = x * randomRatio();
 	nodeSet.clear();
-	GenNode(nodeLine, fs);
-	GenEdge(x - nodeLine, fs);
+	genNode(nodeLine, fs);
+	genEdge(x - nodeLine, fs);
 	fs.close();
 }
 
-void GraphGen::appendGraph(int y) {
+void GraphGen::AppendGraph(int y) {
 	// in 和 app 不能配合
 	fstream ifs(directory, fstream::in);
 	if (!ifs) error("Cannot open file.");
@@ -25,11 +25,11 @@ void GraphGen::appendGraph(int y) {
 	ifs.close();
 
 	fstream afs(directory, fstream::app);
-	GenEdge(y, afs);
+	genEdge(y, afs);
 	afs.close();
 }
 
-void GraphGen::GenNode(int quantity, fstream& fs) {
+void GraphGen::genNode(int quantity, fstream& fs) {
 	switch (nt) {
 	case continuous:
 		for (int i = 0; i < quantity; ++i) {
@@ -50,7 +50,7 @@ void GraphGen::GenNode(int quantity, fstream& fs) {
 	}
 }
 
-void GraphGen::GenEdge(int quantity, fstream& fs) {
+void GraphGen::genEdge(int quantity, fstream& fs) {
 	queue<int> visitQueue;
 	set<int> visitedNode;
 	visitQueue.push(getRandomNode());
