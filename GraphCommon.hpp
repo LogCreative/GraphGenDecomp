@@ -15,14 +15,16 @@ public:
 		edge(int s, int e, double w) : start(s), end(e), weight(w) {}
 		~edge() = default;
 		// 输出函数
-		string output() {
-			return '<'
-				+ to_string(start) + ','
-				+ to_string(end) + ','
-				+ to_string(weight)
-				+ '>';
+		friend fstream& operator<<(fstream& fs, const edge& e) {
+			fs << '<'
+				+ to_string(e.start) + ','
+				+ to_string(e.end) + ','
+				+ to_string(e.weight)
+				+ '>' + '\n';
+			return fs;
 		}
 	};
+	
 
 	// 读取函数
 	void ReadNode(fstream& fs, set<int>& nodeSet) {

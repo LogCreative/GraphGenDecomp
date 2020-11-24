@@ -64,7 +64,7 @@ void GraphGen::GenEdge(int quantity, fstream& fs) {
 				et == Tree && visitedNode.find(childNode) == visitedNode.end()) {
 				visitQueue.push(childNode);
 				edge e(cur, childNode, randomRatio() * max_node / 10);
-				fs << e.output() << endl;
+				fs << e;
 				if (--quantity == 0) return;
 			}
 		}
