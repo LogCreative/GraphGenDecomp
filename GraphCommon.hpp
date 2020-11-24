@@ -1,4 +1,3 @@
-// 有向边的定义
 #ifndef GRAPH_GUARD
 #define GRAPH_GUARD 1
 
@@ -7,6 +6,7 @@
 // 公共类
 class GraphCommon {
 public:
+	// 有向边的定义
 	struct edge {
 		int start;
 		int end;
@@ -29,8 +29,8 @@ public:
 		while (!fs.eof()) {
 			string rl;
 			fs >> rl;
-			if (find(rl.begin(), rl.end(), ',') == rl.end())
-				nodeSet.insert(stoi(rl.substr(1, rl.length() - 2)));
+			if (find(rl.begin(), rl.end(), ',') == rl.end() && rl != "")
+				nodeSet.insert(stoi(rl.substr(1, rl.length() - 1)));
 		}
 	}
 };

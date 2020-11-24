@@ -1,10 +1,11 @@
 #pragma warning(disable:26812)
+#pragma warning(disable:4244)
 #include "GraphGen.h"
 
 int main(int argc, char* argv[]) {
 #ifdef _DEBUG
-	GraphGen gg("1.txt", discrete, Tree/*, _rt*/);
-	gg.newGraph(100);
+	GraphGen gg("1.txt", discrete, Graph);
+	gg.appendGraph(100);
 #else
 	if (argc == 1) error("Please assign the file parameters.");
 	string directory = argv[1];			// 第一个参数作为文件参数
@@ -17,9 +18,7 @@ int main(int argc, char* argv[]) {
 			<< "-c\t连续生成点的序号\n"
 			<< "-d\t不连续生成点的序号\n\n"
 			<< "-t\t生成树\n"
-			<< "-g\t生成不带重边的一般图\n"
-			//<< "-r\t伪随机生成\n"
-			//<< "-sr\t初始化种子随机生成" 
+			<< "-g\t生成一般图\n"
 			<< endl;
 		return 0;
 	}
@@ -32,11 +31,8 @@ int main(int argc, char* argv[]) {
 		else if (param == "-d")		_nt = discrete;
 		else if (param == "-t")		_et = Tree;
 		else if (param == "-g")		_et = Graph;
-		//else if (param == "-gr")	_et = GraphWithRepeated;
-		//else if (param == "-r")	_rt = randt;
-		//else if (param == "-sr")	_rt = srandt;
 	}
-	GraphGen gg(directory, _nt, _et/*, _rt*/);
+	GraphGen gg(directory, _nt, _et);
 	string mode = argv[2];
 	int quantity = stoi(argv[3]);
 	if (mode == "-n") gg.newGraph(quantity);
