@@ -2,7 +2,8 @@
 
 int main(int argc, char* argv[]) {
 #ifdef _DEBUG
-
+	GraphDecomp gd("../GraphGen/1.txt", "subGraph/");
+	gd.Decomp(100);
 #else
 	if (argc == 1) error("Please assgin the main graph directory and subgraph directory.");
 	string _mainDir = argv[1];

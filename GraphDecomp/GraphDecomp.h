@@ -48,6 +48,8 @@ public:
 private:
 	string mainDir;		//主图文件
 	string subDir;		//子图文件夹
+
+	map<int, vector<edge>> adjListGraph;	//邻接表图
 };
 
 #endif // !GRAPH_DECOMP_GUARD

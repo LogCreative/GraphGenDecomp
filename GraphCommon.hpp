@@ -10,6 +10,11 @@
 
 #include "std_lib_facilities.h"
 
+/* 文件格式
+		<节点编号>				节点编号
+		<起始节点,结束节点,权重>	边
+*/
+
 // 公共类
 class GraphCommon {
 protected:
@@ -21,6 +26,7 @@ public:
 		int end;
 		double weight;
 
+		edge() :start(0), end(0), weight(0) {}
 		edge(int s, int e, double w) : start(s), end(e), weight(w) {}
 		~edge() = default;
 		// 输出函数
@@ -32,11 +38,52 @@ public:
 				+ '>' + '\n';
 			return fs;
 		}
+		// 读取边的字符串
+		friend stringstream& operator>>(stringstream& ss, edge& e) {
+			char ch1 = 0, ch2 = 0, ch3 = 0, ch4 = 0;
+			edge et;
+			if (ss >> ch1 >> et.start >> ch2 >> et.end >> ch3 >> et.weight >> ch4) {
+				if (ch1 != '<' || ch2 != ',' || ch3 != ',' || ch4 != '>') {
+					ss.clear(fstream::failbit);
+					return ss;
+				}
+			}
+			else return ss;
+			e = et;
+			return ss;
+		}
 	};
-	
 
-	// 读取函数
-	void ReadNode(fstream& fs, set<int>& nodeSet) {
+	/*
+	friend fstream& operator>>(fstream& fs, set<int>& nodeSet) {
+		char ch1 = 0, ch2 = 0, ch3 = 0, ch4 = 0;
+		int node, node2, weight;
+		if (fs >> ch1 >> node >> ch2) {
+			if (ch1 == '<' && ch2 == ',') {
+				if (fs >> node2 >> ch3 >> weight >> ch4) {
+					if (ch3 != ',' || ch4 != '>') {
+						fs.clear(fstream::failbit);
+						return fs;
+					}
+					nodeSet.insert(node);
+					nodeSet.insert(node2);
+				}
+			}
+			else if (ch1 == '<' && ch2 == '>') {
+				nodeSet.insert(node);
+			}
+			else {
+				fs.clear(fstream::failbit);
+				return fs;
+			}
+		}
+		return fs;
+	}
+	*/
+
+	/* 没有错误检测 */
+	// 读取节点
+	void readNode(fstream& fs, set<int>& nodeSet) {
 		while (!fs.eof()) {
 			string rl;
 			fs >> rl;
@@ -46,10 +93,26 @@ public:
 			else {
 				// ⚠	每个边新添加时，所涉及的两个节点未必存在于已输入的<节点编号>集合内，
 				// 一旦发现边上存在新节点，则将其加入到节点集合中。
-				auto fc = rl.find_first_of(',');
-				auto sc = rl.find_last_of(',');
-				nodeSet.insert(stoi(rl.substr(1,fc-1)));
-				nodeSet.insert(stoi(rl.substr(fc + 1, sc - 1)));
+				edge e;
+				stringstream rs(rl);
+				rs >> e;
+				nodeSet.insert(e.start);
+				nodeSet.insert(e.end);
+			}
+		}
+	}
+
+	// 读取边
+	void readEdge(fstream& fs, map<int,vector<edge>>& adjG) {
+		while (!fs.eof()) {
+			string rl;
+			fs >> rl;
+			stringstream rs(rl);
+			if (rl == "" || find(rl.begin(), rl.end(), ',') == rl.end()) continue;
+			else {
+				edge e;
+				rs >> e;
+				adjG[e.start].push_back(e);
 			}
 		}
 	}

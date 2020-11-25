@@ -20,7 +20,7 @@ void GraphGen::AppendGraph(int y) {
 	fstream ifs(directory, fstream::in);
 	if (!ifs) error("Cannot open file.");
 	nodeSet.clear();
-	ReadNode(ifs, nodeSet);
+	readNode(ifs, nodeSet);
 	max_node = *max_element(nodeSet.begin(), nodeSet.end());		// 获取最大元素作为最大值
 	ifs.close();
 
