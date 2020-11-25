@@ -10,7 +10,7 @@ int main(int argc, char* argv[]) {
 		cout << "显示该程序的参数帮助。\n"
 		<< "GraphDecomp [主图路径] [子图路径] [操作]\n\n"
 		<< "操作\t描述\n"
-		<< "-d\t分割主图\n\n"
+		<< "-d [最大节点数]\t分割主图\n\n"
 		<< "-o\t优化子图\n"
 		<< "-c\t检查子图\n\n"
 		<< "-r [点]\t基于子图，列出可到达节点\n\n"
@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
 	string _subDir = argv[2];
 	GraphDecomp gd(_mainDir, _subDir);
 	string op = argv[3];
-	if (op == "-d") gd.Decomp();
+	if (op == "-d") gd.Decomp(stoi(argv[4]));
 	else if (op == "-o") gd.Optimize();
 	else if (op == "-c") cout << (gd.Check() ? "一致" : "不一致") << endl;
 	else if (op == "-r") gd.ReachablePoints(stoi(argv[4]));

@@ -1,8 +1,8 @@
-/* ÒÑÖªÏŞÖÆ:
-*   0. Ö§³Ö 3000+ ÒÔÉÏµÄ½ÚµãÊı/±ßÊı¡£
-*	1. ÔÊĞíÖØ±ß£¬²»ÔÊĞí¸º±ß¡£
-*	2. Î¨Ò»µÄ½ÚµãÊıÁ¿×÷Îª×ÜÊıÁ¿¡£
-*   3. ±ßµÄÈ¨ÖØÎªÊµÊı(double »á½ØÈ¡µôÈô¸ÉÎ»)¡£
+ï»¿/* å·²çŸ¥é™åˆ¶:
+*   0. æ”¯æŒ 3000+ ä»¥ä¸Šçš„èŠ‚ç‚¹æ•°/è¾¹æ•°ã€‚
+*	1. å…è®¸é‡è¾¹ï¼Œä¸å…è®¸è´Ÿè¾¹ã€‚
+*	2. å”¯ä¸€çš„èŠ‚ç‚¹æ•°é‡ä½œä¸ºæ€»æ•°é‡ã€‚
+*   3. è¾¹çš„æƒé‡ä¸ºå®æ•°(double ä¼šæˆªå–æ‰è‹¥å¹²ä½)ã€‚
 */
 
 #ifndef GRAPH_GUARD
@@ -10,12 +10,12 @@
 
 #include "std_lib_facilities.h"
 
-// ¹«¹²Àà
+// å…¬å…±ç±»
 class GraphCommon {
 protected:
-	set<int> nodeSet;			// ½Úµã¼¯ºÏ
+	set<int> nodeSet;			// èŠ‚ç‚¹é›†åˆ
 public:
-	// ÓĞÏò±ßµÄ¶¨Òå
+	// æœ‰å‘è¾¹çš„å®šä¹‰
 	struct edge {
 		int start;
 		int end;
@@ -23,7 +23,7 @@ public:
 
 		edge(int s, int e, double w) : start(s), end(e), weight(w) {}
 		~edge() = default;
-		// Êä³öº¯Êı
+		// è¾“å‡ºå‡½æ•°
 		friend fstream& operator<<(fstream& fs, const edge& e) {
 			fs << '<'
 				+ to_string(e.start) + ','
@@ -35,13 +35,22 @@ public:
 	};
 	
 
-	// ¶ÁÈ¡º¯Êı
+	// è¯»å–å‡½æ•°
 	void ReadNode(fstream& fs, set<int>& nodeSet) {
 		while (!fs.eof()) {
 			string rl;
 			fs >> rl;
-			if (find(rl.begin(), rl.end(), ',') == rl.end() && rl != "")
+			if (rl == "") continue;
+			if (find(rl.begin(), rl.end(), ',') == rl.end())
 				nodeSet.insert(stoi(rl.substr(1, rl.length() - 1)));
+			else {
+				// âš 	æ¯ä¸ªè¾¹æ–°æ·»åŠ æ—¶ï¼Œæ‰€æ¶‰åŠçš„ä¸¤ä¸ªèŠ‚ç‚¹æœªå¿…å­˜åœ¨äºå·²è¾“å…¥çš„<èŠ‚ç‚¹ç¼–å·>é›†åˆå†…ï¼Œ
+				// ä¸€æ—¦å‘ç°è¾¹ä¸Šå­˜åœ¨æ–°èŠ‚ç‚¹ï¼Œåˆ™å°†å…¶åŠ å…¥åˆ°èŠ‚ç‚¹é›†åˆä¸­ã€‚
+				auto fc = rl.find_first_of(',');
+				auto sc = rl.find_last_of(',');
+				nodeSet.insert(stoi(rl.substr(1,fc-1)));
+				nodeSet.insert(stoi(rl.substr(fc + 1, sc - 1)));
+			}
 		}
 	}
 };
