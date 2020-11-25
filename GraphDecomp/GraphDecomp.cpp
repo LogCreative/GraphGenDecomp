@@ -7,7 +7,10 @@ GraphDecomp::GraphDecomp(string _mainDir, string _subDir):
 }
 
 void GraphDecomp::Decomp() {
+	fstream fs(mainDir, fstream::in);
+	if (!fs) error("Cannot open main graph file!");
 
+	fs.close();
 }
 
 void GraphDecomp::Optimize() {

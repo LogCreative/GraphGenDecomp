@@ -1,7 +1,7 @@
 #include "GraphGen.h"
 
-GraphGen::GraphGen(string _directory, nodeType _nt, edgeType _et):
-	directory(_directory), nt(_nt), et(_et), max_node(100)
+GraphGen::GraphGen(string _directory, nodeType _nt, edgeType _et, isoType _it):
+	directory(_directory), nt(_nt), et(_et), it(_it), max_node(100)
 {
 	
 }
@@ -51,26 +51,57 @@ void GraphGen::genNode(int quantity, fstream& fs) {
 }
 
 void GraphGen::genEdge(int quantity, fstream& fs) {
-	queue<int> visitQueue;
-	set<int> visitedNode;
-	visitQueue.push(getRandomNode());
-	while (!visitQueue.empty()) {
-		int cur = visitQueue.front(); visitQueue.pop();	 // 根
-		visitedNode.insert(cur);
-		int childNum = 2 + randomRatio() * (double)(MAX_CHILD - 2);	 // 至少有两个孩子
-		while (--childNum) {
-			int childNode = getRandomNode();
-			if (et == Graph || 
-				et == Tree && visitedNode.find(childNode) == visitedNode.end()) {
-				visitQueue.push(childNode);
-				edge e(cur, childNode, randomRatio() * max_node / 10);
-				fs << e;
-				if (--quantity == 0) return;
-			}
+	switch (it) {
+	case Single: genSingleGraph(quantity, fs); break;
+	case Multi: genMultiGraphs(quantity, fs); break;
+	}
+}
+
+bool GraphGen::genLayer(int& quantity, fstream& fs, queue<int>& visitQueue) {
+	int cur = visitQueue.front(); visitQueue.pop();	 // 根
+	visitedNode.insert(cur);
+	int childNum = 2 + randomRatio() * (double)(MAX_CHILD - 2);	 // 至少有两个孩子
+	while (--childNum) {
+		int childNode = getRandomNode();
+		if (et == Graph ||
+			et == Tree && visitedNode.find(childNode) == visitedNode.end()) {
+			visitQueue.push(childNode);
+			edge e(cur, childNode, randomRatio() * max_node / 10);
+			fs << e;
+			if (--quantity == 0) return false;
 		}
 	}
-	
+	return true;
 }
+
+void GraphGen::genSingleGraph(int quantity, fstream& fs) {
+	visitedNode.clear();
+	queue<int> visitQueue;
+	visitQueue.push(getRandomNode());
+	while (!visitQueue.empty()) 
+		if(!genLayer(quantity, fs, visitQueue)) return ;	
+}
+
+void GraphGen::genMultiGraphs(int quantity, fstream& fs) {
+	visitedNode.clear();
+
+	// 多个联通子图，并行按层级扩展
+	int isograph = 1 + randomRatio() * (double)(MAX_ISOGRAPH - 1);		// 至少有一个连通子图
+
+	vector<queue<int>> visitQueues(isograph, queue<int>{});
+	
+	// 对每一个联通子图推入一个根节点
+	for (int i = 0; i < isograph; ++i) 
+		visitQueues[i].push(getRandomNode());
+
+	while (quantity) {
+		for (int i = 0; i < isograph; ++i) {
+			if (visitQueues[i].empty()) continue;
+			if (!genLayer(quantity, fs, visitQueues[i])) return;
+		}
+	}
+}
+
 
 //TODO:在一段时间内仍为伪随机数，不够随机
 double GraphGen::randomRatio() {

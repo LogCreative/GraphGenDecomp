@@ -4,7 +4,7 @@
 
 int main(int argc, char* argv[]) {
 #ifdef _DEBUG
-	GraphGen gg("1.txt", discrete, Graph);
+	GraphGen gg("1.txt", discrete, Graph, Multi);
 	gg.NewGraph(1000);
 #else
 	if (argc == 1) error("Please assign the file parameters.");
@@ -18,12 +18,15 @@ int main(int argc, char* argv[]) {
 			<< "-c\t连续生成点的序号\n"
 			<< "-d\t不连续生成点的序号\n\n"
 			<< "-t\t生成树\n"
-			<< "-g\t生成一般图\n"
+			<< "-g\t生成一般图\n\n"
+			<< "-s\t单个连通子图\n"
+			<< "-m\t多个连通子图\n"
 			<< endl;
 		return 0;
 	}
 	nodeType _nt = continuous;
 	edgeType _et = Tree;
+	isoType _it = Single;
 	//randomType _rt = randt;
 	for (int i = 4; i < argc; ++i) {
 		string param = argv[i];
@@ -31,8 +34,10 @@ int main(int argc, char* argv[]) {
 		else if (param == "-d")		_nt = discrete;
 		else if (param == "-t")		_et = Tree;
 		else if (param == "-g")		_et = Graph;
+		else if (param == "-s")		_it = Single;
+		else if (param == "-m")		_it = Multi;
 	}
-	GraphGen gg(directory, _nt, _et);
+	GraphGen gg(directory, _nt, _et, _it);
 	string mode = argv[2];
 	int quantity = stoi(argv[3]);
 	if (mode == "-n") gg.NewGraph(quantity);
