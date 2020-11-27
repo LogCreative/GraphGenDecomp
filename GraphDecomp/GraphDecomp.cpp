@@ -15,13 +15,17 @@ void GraphDecomp::Decomp(int n) {
 	readNode(fs, nodeSet);
 	adjListGraph.clear();
 	fs.clear(); // 如果在文件已经读取到结尾时，fstream的对象会将内部的eof state置位，这时使用 seekg() 函数不能将该状态去除，需要使用 clear() 方法。
-	fs.seekg(0,fstream::beg);	// 返回文件头
+	fs.seekg(0, fstream::beg);	// 返回文件头
 	readEdge(fs, adjListGraph);
 	
 	// 将孤立节点存储到一个文件中
 	
 	// 可以分级，设计不同的算法，
 	// trade off：边权重少，但虚节点多；连续，但边权重多
+	int leastGraphNum = ceil((double)nodeSet.size() / n);
+
+	bfs(n);
+	// 图谱学
 
 	fs.close();
 }
@@ -36,10 +40,21 @@ bool GraphDecomp::Check() {
 
 void GraphDecomp::ReachablePoints(int node) {
 	// 图的存储：邻接表
+	/* //naive method
+	vector<edge> connectedEdges = adjListGraph[node];
+	set<int> reachablePoints;
+	for (auto e : connectedEdges) reachablePoints.insert(e.end);
+	for (auto n : reachablePoints) cout << n << endl;
+	*/
 }
 
 void GraphDecomp::ShortestPath(int start, int end) {
 	// Dijkstra
+
+}
+
+void GraphDecomp::bfs(int n) {
+
 }
 
 GraphDecomp::~GraphDecomp() = default;

@@ -5,7 +5,7 @@
 */
 
 /* 开发记录：
-	2020 / 11 / 24 ~				开发命令行基本功能
+	2020 / 11 / 25 ~				开发命令行基本功能
 									开发图形界面
 	2020 / 12 / 27	23:59			截止时间
 */
@@ -50,6 +50,9 @@ private:
 	string subDir;		//子图文件夹
 
 	map<int, vector<edge>> adjListGraph;	//邻接表图
+
+	//广度优先 节点优先
+	void bfs(int n);
 };
 
 #endif // !GRAPH_DECOMP_GUARD

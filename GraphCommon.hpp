@@ -81,20 +81,25 @@ public:
 	}
 	*/
 
-	/* 没有错误检测 */
 	// 读取节点
 	void readNode(fstream& fs, set<int>& nodeSet) {
 		while (!fs.eof()) {
 			string rl;
 			fs >> rl;
+			stringstream rs(rl);
 			if (rl == "") continue;
-			if (find(rl.begin(), rl.end(), ',') == rl.end())
-				nodeSet.insert(stoi(rl.substr(1, rl.length() - 1)));
+			if (find(rl.begin(), rl.end(), ',') == rl.end()) {
+				char ch;
+				int node;
+				if (rs >> ch >> node) {
+					if (ch == '<')
+						nodeSet.insert(node);
+				}
+			}
 			else {
 				// ⚠	每个边新添加时，所涉及的两个节点未必存在于已输入的<节点编号>集合内，
 				// 一旦发现边上存在新节点，则将其加入到节点集合中。
 				edge e;
-				stringstream rs(rl);
 				rs >> e;
 				nodeSet.insert(e.start);
 				nodeSet.insert(e.end);
