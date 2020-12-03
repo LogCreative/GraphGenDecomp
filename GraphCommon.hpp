@@ -2,7 +2,7 @@
 *   0. 支持 3000+ 以上的节点数/边数。
 *	1. 允许重边，不允许负边。
 *	2. 唯一的节点数量作为总数量。
-*   3. 边的权重为实数(double 会截取掉若干位)。
+*   3. 边的权重为实数(double 会截取掉若干位)， 1000 以内
 */
 
 #ifndef GRAPH_GUARD
@@ -17,8 +17,6 @@
 
 // 公共类
 class GraphCommon {
-protected:
-	set<int> nodeSet;			// 节点集合
 public:
 	// 有向边的定义
 	struct edge {
@@ -121,6 +119,9 @@ public:
 			}
 		}
 	}
+protected:
+	set<int> nodeSet;			// 节点集合
+	map<int, vector<edge>> adjListGraph;	// 邻接表图
 };
 
 
