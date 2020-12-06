@@ -51,6 +51,7 @@ public:
 	*/
 	void Optimize();
 	// - 设计一个算法，将多个子图合并及删除虚节点后，检查与原图A一致。输出分割边的权重和。
+	// - 该问与上一问合并
 	bool Check();
 	/* (3) 子图上算法 */
 	// - 指定一个点，列出计算所有经有向边可达的节点
@@ -83,7 +84,23 @@ private:
 
 	// 寻找最大连接数节点
 	int maxlinked_node();
-	void writeFile();
+	// 
+	string getFileString();
+	// 写入邻接边数据
+	void writeEdgeFile();
+	// 写入独立节点数据
+	void writeNodeFile();
+};
+
+class Optimizer : GraphCommon {
+public:
+	Optimizer(string _subDir);
+	~Optimizer();
+private:
+	vector<string> txt_files;				// 存储文本名称
+	// 摘自
+	// https://blog.csdn.net/u014311125/article/details/93076784
+	int get_files(string fileFolderPath, string fileExtension, vector<string>& file);
 };
 
 #endif // !GRAPH_DECOMP_GUARD

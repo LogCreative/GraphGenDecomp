@@ -111,14 +111,31 @@ public:
 			string rl;
 			fs >> rl;
 			stringstream rs(rl);
-			if (rl == "" || find(rl.begin(), rl.end(), ',') == rl.end()) continue;
+			if (rl == "" || find(rl.begin(), rl.end(), ',') == rl.end()) {
+				char ch;
+				int node;
+				if (rs >> ch >> node) {
+					if (ch == '<')
+						adjG[node].push_back(edge());
+				}
+			}
 			else {
 				edge e;
 				rs >> e;
+				if (isEmptyEdge(adjG, e.start))
+					adjG[e.start].pop_back();		// 清理占位符
 				adjG[e.start].push_back(e);
 			}
 		}
 	}
+
+	// 节点是否空边
+	bool isEmptyEdge(map<int, vector<edge>>& adjG, int node) {
+		if (adjG[node].size() == 1 && adjG[node][0].start == 0 && adjG[node][0].end == 0 && adjG[node][0].weight == 0)
+			return true;
+		return false;
+	}
+
 protected:
 	set<int> nodeSet;			// 节点集合
 	map<int, vector<edge>> adjListGraph;	// 邻接表图

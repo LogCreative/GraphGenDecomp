@@ -16,7 +16,7 @@ void GraphDecomp::Decomp(int n) {
 }
 
 void GraphDecomp::Optimize() {
-
+	Optimizer op(subDir);
 }
 
 bool GraphDecomp::Check() {
@@ -71,17 +71,22 @@ int Decomposer::maxlinked_node() {
 	return res->first;
 }
 
-void Decomposer::writeFile() {
-	string subdirectory = subDir + FILENAME + to_string(fileNum) + ".txt";
-	fstream subfs(subdirectory, fstream::out);
+string Decomposer::getFileString() {
+	return subDir + FILENAME + to_string(fileNum) + ".txt";
+}
+
+void Decomposer::writeEdgeFile() {
+	fstream subfs(getFileString(), fstream::out);
 	int nodeLeft = n;
 	while (!visitQueue.empty()) {
 		int f = visitQueue.front();
 		visitQueue.pop();
+		if (isEmptyEdge(adjListGraph, f)) continue;
 
 		for (auto i = adjListGraph[f].begin(); i != adjListGraph[f].end(); ++i) {
+			if (i->start == 0) continue;			// 空边跳过
 			if(adjListGraph.find(i->end)!=adjListGraph.end()) 
-				visitQueue.push(i->end);				// 其指向的子节点全部进队
+				visitQueue.push(i->end);			// 其指向的子节点全部进队
 			subfs << *i;							// 输出该边
 			if (--nodeLeft == 0) {
 				subfs.close();
@@ -92,6 +97,21 @@ void Decomposer::writeFile() {
 
 		// 该节点输出完毕，退出
 		adjListGraph.erase(f);
+	}
+}
+
+void Decomposer::writeNodeFile() {
+	int nodeLeft = 0;
+	fstream* subfs = NULL;
+	for (auto i = adjListGraph.begin(); i != adjListGraph.end(); ++i) {
+		if (nodeLeft == 0) {
+			if (subfs) subfs->close();
+			subfs = new fstream(getFileString(), fstream::out);
+			++fileNum;
+			nodeLeft = n;
+		}
+		*subfs << '<' << i->first << '>' << endl;
+		--nodeLeft;
 	}
 }
 
@@ -108,21 +128,51 @@ void Decomposer::BFS() {
 	while (!adjListGraph.empty()) {
 		if (visitQueue.empty()) { 
 			int base = maxlinked_node();
-			if (adjListGraph[base].size() == 0) break;			// 孤立节点
+			int maxNum = adjListGraph[base].size();
+			if (isEmptyEdge(adjListGraph, base)) break;			// 孤立节点
 			visitQueue.push(base);			// 基点
 		}				
-		writeFile();
+		writeEdgeFile();
 	}
 	
-	string subdirectory = subDir + FILENAME + "0.txt";
-	fstream subfs(subdirectory, fstream::out);
-	for (auto i = adjListGraph.begin(); i != adjListGraph.end(); ++i) 
-		subfs << '<' << i->first << '>' << endl;
-	subfs.close();
+	writeNodeFile();
 }
 
 void Decomposer::Kerninghan_Lin() {
-
+	// TODO
 }
 
 Decomposer::~Decomposer() = default;
+
+Optimizer::Optimizer(string _subDir) {
+	// 遍历文件
+	string fileExtension = ".txt";
+	get_files(_subDir, fileExtension, txt_files);
+}
+
+int Optimizer::get_files(string fileFolderPath, string fileExtension, vector<string>& file)
+{
+	string fileFolder = fileFolderPath + "\\*" + fileExtension;
+	string fileName;
+	struct _finddata_t fileInfo;
+	long long findResult = _findfirst(fileFolder.c_str(), &fileInfo);
+	if (findResult == -1)
+	{
+		_findclose(findResult);
+		return 0;
+	}
+	bool flag = 0;
+
+	do
+	{
+		fileName = fileFolderPath + "\\" + fileInfo.name;
+		if (fileInfo.attrib == _A_ARCH)
+		{
+			file.push_back(fileName);
+		}
+	} while (_findnext(findResult, &fileInfo) == 0);
+
+	_findclose(findResult);
+}
+
+Optimizer::~Optimizer() = default;
