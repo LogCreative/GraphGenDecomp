@@ -11,7 +11,7 @@
 		子图与子图之间的权重按照所有节点与子图外节点的权重计算。
 
 	（1）<a, Graph1.d, weight>
-	 (2) <a, v, <G1.d, weight>>
+	 (2) <a, v, <G1.d, weight>> v是虚节点，选择该方法，加快检索速度
 */
 
 
@@ -84,7 +84,7 @@ private:
 
 	// 寻找最大连接数节点
 	int maxlinked_node();
-	// 
+	// 得到文件名字符串
 	string getFileString();
 	// 写入邻接边数据
 	void writeEdgeFile();
@@ -96,10 +96,12 @@ class Optimizer : GraphCommon {
 public:
 	Optimizer(string _subDir);
 	~Optimizer();
+
+	// 优化
+	void Optimize();
 private:
 	vector<string> txt_files;				// 存储文本名称
-	// 摘自
-	// https://blog.csdn.net/u014311125/article/details/93076784
+	// 获取文件夹中所有文件路径
 	int get_files(string fileFolderPath, string fileExtension, vector<string>& file);
 };
 

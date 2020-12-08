@@ -23,16 +23,32 @@ public:
 		int start;
 		int end;
 		double weight;
+		string targetFile;
+		int targetNode;
 
 		edge() :start(0), end(0), weight(0) {}
 		edge(int s, int e, double w) : start(s), end(e), weight(w) {}
+		edge(int s, int e, double w, string tf, int tn) : start(s), end(e), weight(w), targetFile(tf), targetNode(tn) {
+		}
 		~edge() = default;
 		// 输出函数
 		friend fstream& operator<<(fstream& fs, const edge& e) {
-			fs << '<'
+			if (e.start != -1 && e.end != -1)
+				fs << '<'
 				+ to_string(e.start) + ','
 				+ to_string(e.end) + ','
 				+ to_string(e.weight)
+				+ '>' + '\n';
+			else fs << '<'
+				+ to_string(e.start) + ','
+				+ to_string(e.end) + ','
+				+ '<'
+				+ e.targetFile
+				+ '.'
+				+ to_string(e.targetNode)
+				+ ','
+				+ to_string(e.weight)
+				+ '>'
 				+ '>' + '\n';
 			return fs;
 		}
@@ -40,10 +56,31 @@ public:
 		friend stringstream& operator>>(stringstream& ss, edge& e) {
 			char ch1 = 0, ch2 = 0, ch3 = 0, ch4 = 0;
 			edge et;
-			if (ss >> ch1 >> et.start >> ch2 >> et.end >> ch3 >> et.weight >> ch4) {
-				if (ch1 != '<' || ch2 != ',' || ch3 != ',' || ch4 != '>') {
+			if (ss >> ch1 >> et.start >> ch2 >> et.end) {
+				if (ch1 != '<' || ch2 != ',') {
 					ss.clear(fstream::failbit);
 					return ss;
+				}
+				if (et.start == -1 || et.end == -1) {
+					// 虚节点
+					string _remain;	// targetFile. targetNode, weight>>
+					if (ss >> ch3 >> ch4 >> _remain) {
+						if (ch3 != ',' || ch4 != '<') {
+							ss.clear(fstream::failbit);
+							return ss;
+						}
+						auto dilimeter = _remain.find_first_of('.');
+						auto comma = _remain.find(',');
+						et.targetFile = _remain.substr(0, dilimeter);
+						et.targetNode = stoi(_remain.substr(dilimeter + 1, comma - dilimeter - 1));
+						et.weight = stod(_remain.substr(comma + 1, _remain.find_first_of('>') - comma - 1));
+					}
+				}
+				else if (ss >> ch3 >> et.weight >> ch4) {
+					if (ch3 != ',' || ch4 != '>') {
+						ss.clear(fstream::failbit);
+						return ss;
+					}
 				}
 			}
 			else return ss;
@@ -51,33 +88,6 @@ public:
 			return ss;
 		}
 	};
-
-	/*
-	friend fstream& operator>>(fstream& fs, set<int>& nodeSet) {
-		char ch1 = 0, ch2 = 0, ch3 = 0, ch4 = 0;
-		int node, node2, weight;
-		if (fs >> ch1 >> node >> ch2) {
-			if (ch1 == '<' && ch2 == ',') {
-				if (fs >> node2 >> ch3 >> weight >> ch4) {
-					if (ch3 != ',' || ch4 != '>') {
-						fs.clear(fstream::failbit);
-						return fs;
-					}
-					nodeSet.insert(node);
-					nodeSet.insert(node2);
-				}
-			}
-			else if (ch1 == '<' && ch2 == '>') {
-				nodeSet.insert(node);
-			}
-			else {
-				fs.clear(fstream::failbit);
-				return fs;
-			}
-		}
-		return fs;
-	}
-	*/
 
 	// 读取节点
 	void readNode(fstream& fs, set<int>& nodeSet) {
@@ -122,8 +132,8 @@ public:
 			else {
 				edge e;
 				rs >> e;
-				if (isEmptyEdge(adjG, e.start))
-					adjG[e.start].pop_back();		// 清理占位符
+				//if (isEmptyEdge(adjG, e.start))
+				//	adjG[e.start].pop_back();		// 清理占位符
 				adjG[e.start].push_back(e);
 			}
 		}

@@ -11,12 +11,14 @@ void GraphDecomp::Decomp(int n) {
 	if (!fs) error("Cannot open main graph file!");
 	
 	Decomposer decomp(n, fs, subDir);
+	decomp.BFS();
 
 	fs.close();
 }
 
 void GraphDecomp::Optimize() {
 	Optimizer op(subDir);
+	op.Optimize();
 }
 
 bool GraphDecomp::Check() {
@@ -54,9 +56,9 @@ Decomposer::Decomposer(int _n, fstream &fs, string _subDir):
 
 	// 可以分级，设计不同的算法，
 	// trade off：边权重少，但虚节点多；连续，但边权重多
-	int leastGraphNum = ceil((double)nodeSet.size() / n);
+	// int leastGraphNum = ceil((double)nodeSet.size() / n);
 
-	BFS();
+	// BFS();
 	// 图谱学
 
 	// Kerninghan_Lin(n);
@@ -75,13 +77,13 @@ string Decomposer::getFileString() {
 	return subDir + FILENAME + to_string(fileNum) + ".txt";
 }
 
+// 有浪费，但大图仍然需要优化
 void Decomposer::writeEdgeFile() {
 	fstream subfs(getFileString(), fstream::out);
 	int nodeLeft = n;
 	while (!visitQueue.empty()) {
 		int f = visitQueue.front();
 		visitQueue.pop();
-		if (isEmptyEdge(adjListGraph, f)) continue;
 
 		for (auto i = adjListGraph[f].begin(); i != adjListGraph[f].end(); ++i) {
 			if (i->start == 0) continue;			// 空边跳过
@@ -98,6 +100,8 @@ void Decomposer::writeEdgeFile() {
 		// 该节点输出完毕，退出
 		adjListGraph.erase(f);
 	}
+	if (nodeLeft != 0)								// 该文件没有写满
+		++fileNum;
 }
 
 void Decomposer::writeNodeFile() {
@@ -150,6 +154,7 @@ Optimizer::Optimizer(string _subDir) {
 	get_files(_subDir, fileExtension, txt_files);
 }
 
+// 摘自 https://blog.csdn.net/u014311125/article/details/93076784
 int Optimizer::get_files(string fileFolderPath, string fileExtension, vector<string>& file)
 {
 	string fileFolder = fileFolderPath + "\\*" + fileExtension;
@@ -173,6 +178,13 @@ int Optimizer::get_files(string fileFolderPath, string fileExtension, vector<str
 	} while (_findnext(findResult, &fileInfo) == 0);
 
 	_findclose(findResult);
+}
+
+void Optimizer::Optimize() {
+	// 设计？
+	stringstream ss("<1,-1,<G1.2,2.5>");
+	edge e;
+	ss >> e;
 }
 
 Optimizer::~Optimizer() = default;
