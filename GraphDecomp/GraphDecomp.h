@@ -33,7 +33,7 @@ const string OPTFIL = "O";
 class GraphDecomp : GraphCommon {
 public:
 	// 创建图分割器
-	GraphDecomp(string _mainDir, string _subDir);
+	GraphDecomp(int _n, string _mainDir, string _subDir);
 	// 析构
 	~GraphDecomp(); 
 	/*（1）分割图文件
@@ -44,7 +44,7 @@ public:
 	- 我们将挑选若干自动生成的图，对比大家生成的权重之和值——
 		【在结果正确的前提下，计算权重之和越小，分数越高。】
 	*/
-	void Decomp(int n);
+	void Decomp();
 	/* (2) 优化子图存储
 	上述图分割算法导致分割成的多个子图之间存在重复的节点，请设计一个方法，使
 	- 多个子图文件中分别载入程序后，不存在重复的节点
@@ -61,13 +61,15 @@ public:
 	// 如果指定的节点不存在，报错即可
 	void ShortestPath(int start, int end);
 private:
-	string mainDir;		//主图文件
-	string subDir;		//子图文件夹
+	int n;
+	string mainDir;		// 主图文件
+	string subDir;		// 子图文件夹
 };
 
 // 处理器父类
 class Processor : public GraphCommon {
 protected:
+	int n;				// 节点限制数
 	string subDir;		// 子图路径
 	int fileNum;		// 文件编号
 	string SUFFIX;		// 文件前缀
@@ -89,7 +91,6 @@ public:
 	// https://ieeexplore.ieee.org/document/6771089/
 	void Kerninghan_Lin();
 private:
-	int n;									// 节点限制数
 	queue <int> visitQueue;					// 访问队列
 
 	// 寻找最大连接数节点
@@ -103,7 +104,7 @@ private:
 // 优化器
 class Optimizer : Processor {
 public:
-	Optimizer(string _subDir);
+	Optimizer(int _n, string _subDir);
 	~Optimizer();
 
 	// 优化
@@ -111,17 +112,32 @@ public:
 private:
 	vector<string> txt_files;				// 存储文本名称
 	map<int, string> storedNodes;			// 已经存储的节点映射
+	queue<edge> pendingEdges;				// 等待存储的边队列
+	map<int, int> fileLineCnt;				// 存储文件行数
 
-	// 获取文件夹中所有文件路径
+	/// <summary>
+	/// 获取文件夹中所有文件路径
+	/// </summary>
+	/// <param name="fileFolderPath">查找路径</param>
+	/// <param name="fileExtension">文件扩展名</param>
+	/// <param name="file">文件名向量组</param>
+	/// <param name="nameFilter">名称过滤器</param>
+	/// <returns></returns>
 	int getFiles(string fileFolderPath, string fileExtension, vector<string>& file, string nameFilter);
 
 	// 获取文件名称
 	string parseFileName(string filePath);
 	// 获取字符串中的整数
 	int parseInt(string str);
+	// 获取文件名中的整数
+	int parseFileInt(string filePath);
+	// 获取优化后对应的文件名
+	string getOptFileName(string oriPath);
 
 	// 优化单元
 	void optimizeUnit(string ifn, string ofn);
+	// 优化剩余边
+	void optimizeRemain();
 };
 
 #endif // !GRAPH_DECOMP_GUARD

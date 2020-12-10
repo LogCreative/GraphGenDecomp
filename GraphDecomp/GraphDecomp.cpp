@@ -1,12 +1,12 @@
 #include "GraphDecomp.h"
 
-GraphDecomp::GraphDecomp(string _mainDir, string _subDir):
-	mainDir(_mainDir), subDir(_subDir)
+GraphDecomp::GraphDecomp(int _n, string _mainDir, string _subDir):
+	n(_n), mainDir(_mainDir), subDir(_subDir)
 {
-
+	
 }
 
-void GraphDecomp::Decomp(int n) {
+void GraphDecomp::Decomp() {
 	fstream fs(mainDir, fstream::in);
 	if (!fs) error("Cannot open main graph file!");
 	
@@ -17,7 +17,7 @@ void GraphDecomp::Decomp(int n) {
 }
 
 void GraphDecomp::Optimize() {
-	Optimizer op(subDir);
+	Optimizer op(n, subDir);
 	op.Optimize();
 }
 
@@ -46,9 +46,9 @@ string Processor::getFileString(int label) {
 	return subDir + SUFFIX + to_string(label == -1 ? fileNum : label) + ".txt";
 }
 
-Decomposer::Decomposer(int _n, fstream &fs, string _subDir): 
-	n(_n) {
+Decomposer::Decomposer(int _n, fstream &fs, string _subDir) {
 	fileNum = 1;
+	n = _n;
 	subDir = _subDir;
 	SUFFIX = DECOMPFIL;
 
@@ -152,7 +152,8 @@ void Decomposer::Kerninghan_Lin() {
 
 Decomposer::~Decomposer() = default;
 
-Optimizer::Optimizer(string _subDir) {
+Optimizer::Optimizer(int _n, string _subDir) {
+	n = _n;
 	subDir = _subDir;
 	SUFFIX = OPTFIL;
 
@@ -161,9 +162,9 @@ Optimizer::Optimizer(string _subDir) {
 	getFiles(_subDir, fileExtension, txt_files, DECOMPFIL);
 }
 
-// 摘自 https://blog.csdn.net/u014311125/article/details/93076784
 int Optimizer::getFiles(string fileFolderPath, string fileExtension, vector<string>& file, string nameFilter)
 {
+	// 摘自 https://blog.csdn.net/u014311125/article/details/93076784
 	string fileFolder = fileFolderPath + "\\*" + fileExtension;
 	string fileName;
 	struct _finddata_t fileInfo;
@@ -202,12 +203,22 @@ int Optimizer::parseInt(string str) {
 	return n;
 }
 
+int Optimizer::parseFileInt(string filePath) {
+	return parseInt(parseFileName(filePath));
+}
+
+string Optimizer::getOptFileName(string oriPath) {
+	return SUFFIX + to_string(parseFileInt(oriPath));
+}
+
 void Optimizer::optimizeUnit(string ifn, string ofn) {
 	// 对照表。
 	// 出现过的就直接引用。
 
 	fstream ifs(ifn, fstream::in);
-	fstream ofs(ofn, fstream::app);
+	fstream ofs(ofn, fstream::out);
+
+	int cnt = 0;
 
 	// 孤立节点不需要对边进行处理。
 	while (!ifs.eof()) {
@@ -221,28 +232,14 @@ void Optimizer::optimizeUnit(string ifn, string ofn) {
 		if (isEmptyEdge(e))
 			continue;			// 读到节点了 继续
 
+
 		auto sloc = storedNodes.find(e.start);
 		auto eloc = storedNodes.find(e.end);
 		auto tloc = storedNodes.end();
 
-		if (sloc != tloc && eloc != tloc) {
-			// 有bug 起点和终点都不在图中
-			// append 到起始边子图中，因为最多有一个虚节点
-
-			// 需要解决：某一文件的数据太多。
-
-			fstream nofs(getFileString(parseInt(parseFileName(sloc->second))), fstream::app);
-			
-			if (sloc->second != eloc->second) {
-				// 虚边
-				e.end = -1;
-				e.targetFile = parseFileName(eloc->second);
-				e.targetNode = sloc->first;
-			}
-			
-			nofs << e;
-			nofs.close();
-		}
+		if (sloc != tloc && eloc != tloc || 
+			e.start == e.end)
+			pendingEdges.push(e);			// 之后再分配
 		else {
 
 			// 处理始点
@@ -251,7 +248,7 @@ void Optimizer::optimizeUnit(string ifn, string ofn) {
 			else {
 				if (sloc->second != ifn) {
 					e.start = -1;
-					e.targetFile = parseFileName(sloc->second);
+					e.targetFile = getOptFileName(sloc->second);
 					e.targetNode = sloc->first;
 				}
 			}
@@ -262,29 +259,86 @@ void Optimizer::optimizeUnit(string ifn, string ofn) {
 			else {
 				if (eloc->second != ifn) {
 					e.end = -1;
-					e.targetFile = parseFileName(eloc->second);
+					e.targetFile = getOptFileName(eloc->second);
 					e.targetNode = eloc->first;
 				}
 			}
 
 			ofs << e;
+			++cnt;
 		}
 
 	}
 
+	fileLineCnt[fileNum] = cnt;
 	ifs.close();
 	ofs.close();
+}
+
+void Optimizer::optimizeRemain() {
+	// 剩余边再分配，处理起点和终点都不在之前图的情形
+	// 需要比较复杂的分配策略
+
+	vector<string> opt_txt_files;
+	getFiles(subDir, ".txt", opt_txt_files, OPTFIL);
+
+	while (!pendingEdges.empty()) {
+		edge e = pendingEdges.front();
+		pendingEdges.pop();
+
+		auto sloc = storedNodes.find(e.start);
+		auto eloc = storedNodes.find(e.end);
+
+		if (sloc->second != eloc->second) {
+			// 虚边
+			if (fileLineCnt[parseFileInt(storedNodes[e.start])] >= n) {
+				// 放在结束点所在文件
+				int endC = parseFileInt(eloc->second);
+				fstream nofs(getFileString(endC), fstream::app);
+				e.end = -1;
+				e.targetFile = getOptFileName(sloc->second);
+				e.targetNode = sloc->first;
+				nofs << e;
+				fileLineCnt[endC]++;
+				nofs.close();
+			}
+			else {
+				// 放在开始点所在文件
+				int startC = parseFileInt(sloc->second);
+				fstream nofs(getFileString(startC), fstream::app);
+				e.start = -1;
+				e.targetFile = getOptFileName(eloc->second);
+				e.targetNode = eloc->first;
+				nofs << e;
+				fileLineCnt[startC]++;
+				nofs.close();
+			}
+		}
+		else {
+			// 考虑新的策略
+			int endC = parseFileInt(eloc->second);
+			fstream nofs(getFileString(endC), fstream::app);
+			nofs << e;
+			fileLineCnt[endC]++;
+			nofs.close();
+		}
+		
+	}
+
 }
 
 void Optimizer::Optimize() {
 	fileNum = 1;
 	storedNodes.clear();
+	while (!pendingEdges.empty()) pendingEdges.pop();
 
 	for (auto i = txt_files.begin(); i != txt_files.end(); ++i) {
-		string ofile = getFileString();
-		optimizeUnit(*i, ofile);
+		optimizeUnit(*i, getFileString());
 		++fileNum;
 	}
+
+	optimizeRemain();
+
 }
 
 Optimizer::~Optimizer() = default;
