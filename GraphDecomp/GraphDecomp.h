@@ -27,7 +27,8 @@
 #include "../std_lib_facilities.h"
 #include "../GraphCommon.hpp"
 
-const string FILENAME = "A";
+const string DECOMPFIL = "A";
+const string OPTFIL = "O";
 
 class GraphDecomp : GraphCommon {
 public:
@@ -64,8 +65,19 @@ private:
 	string subDir;		//子图文件夹
 };
 
+// 处理器父类
+class Processor : public GraphCommon {
+protected:
+	string subDir;		// 子图路径
+	int fileNum;		// 文件编号
+	string SUFFIX;		// 文件前缀
+
+	// 得到文件名字符串
+	string getFileString(int label = -1);
+};
+
 // 分解器
-class Decomposer : GraphCommon {
+class Decomposer : Processor {
 public:
 	Decomposer(int _n, fstream &fs, string _subDir);
 	~Decomposer();
@@ -79,20 +91,17 @@ public:
 private:
 	int n;									// 节点限制数
 	queue <int> visitQueue;					// 访问队列
-	string subDir;							// 子图路径
-	int fileNum;							// 文件编号
 
 	// 寻找最大连接数节点
 	int maxlinked_node();
-	// 得到文件名字符串
-	string getFileString();
 	// 写入邻接边数据
 	void writeEdgeFile();
 	// 写入独立节点数据
 	void writeNodeFile();
 };
 
-class Optimizer : GraphCommon {
+// 优化器
+class Optimizer : Processor {
 public:
 	Optimizer(string _subDir);
 	~Optimizer();
@@ -101,8 +110,18 @@ public:
 	void Optimize();
 private:
 	vector<string> txt_files;				// 存储文本名称
+	map<int, string> storedNodes;			// 已经存储的节点映射
+
 	// 获取文件夹中所有文件路径
-	int get_files(string fileFolderPath, string fileExtension, vector<string>& file);
+	int getFiles(string fileFolderPath, string fileExtension, vector<string>& file, string nameFilter);
+
+	// 获取文件名称
+	string parseFileName(string filePath);
+	// 获取字符串中的整数
+	int parseInt(string str);
+
+	// 优化单元
+	void optimizeUnit(string ifn, string ofn);
 };
 
 #endif // !GRAPH_DECOMP_GUARD

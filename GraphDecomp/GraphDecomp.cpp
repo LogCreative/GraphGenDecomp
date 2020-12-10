@@ -42,8 +42,16 @@ void GraphDecomp::ShortestPath(int start, int end) {
 
 GraphDecomp::~GraphDecomp() = default;
 
+string Processor::getFileString(int label) {
+	return subDir + SUFFIX + to_string(label == -1 ? fileNum : label) + ".txt";
+}
+
 Decomposer::Decomposer(int _n, fstream &fs, string _subDir): 
-	n(_n), fileNum(1), subDir(_subDir) {
+	n(_n) {
+	fileNum = 1;
+	subDir = _subDir;
+	SUFFIX = DECOMPFIL;
+
 	// 读取节点与边
 	nodeSet.clear();
 	readNode(fs, nodeSet);
@@ -71,10 +79,6 @@ int Decomposer::maxlinked_node() {
 		if (i->second.size() > res->second.size())
 			res = i;
 	return res->first;
-}
-
-string Decomposer::getFileString() {
-	return subDir + FILENAME + to_string(fileNum) + ".txt";
 }
 
 // 有浪费，但大图仍然需要优化
@@ -133,7 +137,7 @@ void Decomposer::BFS() {
 		if (visitQueue.empty()) { 
 			int base = maxlinked_node();
 			int maxNum = adjListGraph[base].size();
-			if (isEmptyEdge(adjListGraph, base)) break;			// 孤立节点
+			if (isEmptyNodeEdge(adjListGraph, base)) break;			// 孤立节点
 			visitQueue.push(base);			// 基点
 		}				
 		writeEdgeFile();
@@ -149,13 +153,16 @@ void Decomposer::Kerninghan_Lin() {
 Decomposer::~Decomposer() = default;
 
 Optimizer::Optimizer(string _subDir) {
+	subDir = _subDir;
+	SUFFIX = OPTFIL;
+
 	// 遍历文件
 	string fileExtension = ".txt";
-	get_files(_subDir, fileExtension, txt_files);
+	getFiles(_subDir, fileExtension, txt_files, DECOMPFIL);
 }
 
 // 摘自 https://blog.csdn.net/u014311125/article/details/93076784
-int Optimizer::get_files(string fileFolderPath, string fileExtension, vector<string>& file)
+int Optimizer::getFiles(string fileFolderPath, string fileExtension, vector<string>& file, string nameFilter)
 {
 	string fileFolder = fileFolderPath + "\\*" + fileExtension;
 	string fileName;
@@ -170,8 +177,9 @@ int Optimizer::get_files(string fileFolderPath, string fileExtension, vector<str
 
 	do
 	{
-		fileName = fileFolderPath + "\\" + fileInfo.name;
-		if (fileInfo.attrib == _A_ARCH)
+		fileName = fileFolderPath + '\\' + fileInfo.name;
+		if (fileInfo.attrib == _A_ARCH && 
+			strstr(fileInfo.name, nameFilter.c_str()) != NULL)			// 添加查找文件的过滤器
 		{
 			file.push_back(fileName);
 		}
@@ -180,11 +188,103 @@ int Optimizer::get_files(string fileFolderPath, string fileExtension, vector<str
 	_findclose(findResult);
 }
 
+string Optimizer::parseFileName(string filePath) {
+	auto beg = filePath.find('\\');
+	return filePath.substr(beg + 1, filePath.find_last_of('.') - beg - 1);
+}
+
+int Optimizer::parseInt(string str) {
+	int n = 0;
+	for (auto c : str) {
+		if (c >= '0' && c <= '9')
+			n = n * 10 + c - '0';
+	}
+	return n;
+}
+
+void Optimizer::optimizeUnit(string ifn, string ofn) {
+	// 对照表。
+	// 出现过的就直接引用。
+
+	fstream ifs(ifn, fstream::in);
+	fstream ofs(ofn, fstream::app);
+
+	// 孤立节点不需要对边进行处理。
+	while (!ifs.eof()) {
+		string rl;
+		ifs >> rl;
+		if (rl == "") break;
+		stringstream rs(rl);
+		edge e;
+		rs >> e;
+
+		if (isEmptyEdge(e))
+			continue;			// 读到节点了 继续
+
+		auto sloc = storedNodes.find(e.start);
+		auto eloc = storedNodes.find(e.end);
+		auto tloc = storedNodes.end();
+
+		if (sloc != tloc && eloc != tloc) {
+			// 有bug 起点和终点都不在图中
+			// append 到起始边子图中，因为最多有一个虚节点
+
+			// 需要解决：某一文件的数据太多。
+
+			fstream nofs(getFileString(parseInt(parseFileName(sloc->second))), fstream::app);
+			
+			if (sloc->second != eloc->second) {
+				// 虚边
+				e.end = -1;
+				e.targetFile = parseFileName(eloc->second);
+				e.targetNode = sloc->first;
+			}
+			
+			nofs << e;
+			nofs.close();
+		}
+		else {
+
+			// 处理始点
+			if (sloc == tloc)
+				storedNodes.insert(make_pair(e.start, ifn));
+			else {
+				if (sloc->second != ifn) {
+					e.start = -1;
+					e.targetFile = parseFileName(sloc->second);
+					e.targetNode = sloc->first;
+				}
+			}
+
+			// 处理终点
+			if (eloc == tloc)
+				storedNodes.insert(make_pair(e.end, ifn));
+			else {
+				if (eloc->second != ifn) {
+					e.end = -1;
+					e.targetFile = parseFileName(eloc->second);
+					e.targetNode = eloc->first;
+				}
+			}
+
+			ofs << e;
+		}
+
+	}
+
+	ifs.close();
+	ofs.close();
+}
+
 void Optimizer::Optimize() {
-	// 设计？
-	stringstream ss("<1,-1,<G1.2,2.5>");
-	edge e;
-	ss >> e;
+	fileNum = 1;
+	storedNodes.clear();
+
+	for (auto i = txt_files.begin(); i != txt_files.end(); ++i) {
+		string ofile = getFileString();
+		optimizeUnit(*i, ofile);
+		++fileNum;
+	}
 }
 
 Optimizer::~Optimizer() = default;

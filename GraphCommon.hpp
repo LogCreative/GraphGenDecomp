@@ -11,8 +11,11 @@
 #include "std_lib_facilities.h"
 
 /* 文件格式
-		<节点编号>				节点编号
-		<起始节点,结束节点,权重>	边
+		<节点编号>								节点编号
+		<起始节点,结束节点,权重>					边
+		<起始节点,结束节点,<目标图.目标节点,权重>>	虚拟边
+			-1				对应起始节点
+					-1		对应结束节点
 */
 
 // 公共类
@@ -20,14 +23,14 @@ class GraphCommon {
 public:
 	// 有向边的定义
 	struct edge {
-		int start;
+		int start;				// -1 表示虚节点
 		int end;
 		double weight;
 		string targetFile;
 		int targetNode;
 
-		edge() :start(0), end(0), weight(0) {}
-		edge(int s, int e, double w) : start(s), end(e), weight(w) {}
+		edge() :start(0), end(0), weight(0), targetNode(-1) {}
+		edge(int s, int e, double w) : start(s), end(e), weight(w), targetNode(-1) {}
 		edge(int s, int e, double w, string tf, int tn) : start(s), end(e), weight(w), targetFile(tf), targetNode(tn) {
 		}
 		~edge() = default;
@@ -139,9 +142,15 @@ public:
 		}
 	}
 
+	bool isEmptyEdge(edge e) {
+		if (e.start == 0 && e.end == 0 && e.weight == 0)
+			return true;
+		return false;
+	}
+
 	// 节点是否空边
-	bool isEmptyEdge(map<int, vector<edge>>& adjG, int node) {
-		if (adjG[node].size() == 1 && adjG[node][0].start == 0 && adjG[node][0].end == 0 && adjG[node][0].weight == 0)
+	bool isEmptyNodeEdge(map<int, vector<edge>>& adjG, int node) {
+		if (adjG[node].size() == 1 && isEmptyEdge(adjG[node][0]))
 			return true;
 		return false;
 	}
