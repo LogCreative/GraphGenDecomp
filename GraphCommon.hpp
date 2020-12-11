@@ -18,9 +18,45 @@
 					-1		对应结束节点
 */
 
+const char DILIMETER = ',';
+
 // 公共类
 class GraphCommon {
 public:
+	/*
+	* 暂时不启用，当需要更改节点存储类型时再更改
+	// 节点的定义
+	struct node {
+		int data;
+
+		node(): data(0) {}
+		node(int d) : data(d) {}
+		~node() = default;
+
+		// 输出函数
+		friend fstream& operator<<(fstream& fs, const node& n) {
+			fs << '<' << n.data << '>\n';
+			return fs;
+		}
+
+		// 读取节点字符串
+		friend stringstream& operator>>(stringstream& ss, node& n) {
+			node nt;
+			
+			char ch1, ch2;
+			if (ss >> ch1 >> nt.data >> ch2) {
+				if (ch1 != '<' || ch2 != '>') {
+					ss.clear(fstream::failbit);
+					return ss;
+				}
+			}
+			else return ss;
+			n = nt;
+			return ss;
+		}
+	};
+	*/
+
 	// 有向边的定义
 	struct edge {
 		int start;				// -1 表示虚节点
@@ -38,18 +74,18 @@ public:
 		friend fstream& operator<<(fstream& fs, const edge& e) {
 			if (e.start != -1 && e.end != -1)
 				fs << '<'
-				+ to_string(e.start) + ','
-				+ to_string(e.end) + ','
+				+ to_string(e.start) + DILIMETER
+				+ to_string(e.end) + DILIMETER
 				+ to_string(e.weight)
 				+ '>' + '\n';
 			else fs << '<'
-				+ to_string(e.start) + ','
-				+ to_string(e.end) + ','
+				+ to_string(e.start) + DILIMETER
+				+ to_string(e.end) + DILIMETER
 				+ '<'
 				+ e.targetFile
 				+ '.'
 				+ to_string(e.targetNode)
-				+ ','
+				+ DILIMETER
 				+ to_string(e.weight)
 				+ '>'
 				+ '>' + '\n';
@@ -60,7 +96,7 @@ public:
 			char ch1 = 0, ch2 = 0, ch3 = 0, ch4 = 0;
 			edge et;
 			if (ss >> ch1 >> et.start >> ch2 >> et.end) {
-				if (ch1 != '<' || ch2 != ',') {
+				if (ch1 != '<' || ch2 != DILIMETER) {
 					ss.clear(fstream::failbit);
 					return ss;
 				}
@@ -68,19 +104,19 @@ public:
 					// 虚节点
 					string _remain;	// targetFile. targetNode, weight>>
 					if (ss >> ch3 >> ch4 >> _remain) {
-						if (ch3 != ',' || ch4 != '<') {
+						if (ch3 != DILIMETER || ch4 != '<') {
 							ss.clear(fstream::failbit);
 							return ss;
 						}
 						auto dilimeter = _remain.find_first_of('.');
-						auto comma = _remain.find(',');
+						auto comma = _remain.find(DILIMETER);
 						et.targetFile = _remain.substr(0, dilimeter);
 						et.targetNode = stoi(_remain.substr(dilimeter + 1, comma - dilimeter - 1));
 						et.weight = stod(_remain.substr(comma + 1, _remain.find_first_of('>') - comma - 1));
 					}
 				}
 				else if (ss >> ch3 >> et.weight >> ch4) {
-					if (ch3 != ',' || ch4 != '>') {
+					if (ch3 != DILIMETER || ch4 != '>') {
 						ss.clear(fstream::failbit);
 						return ss;
 					}
@@ -92,19 +128,27 @@ public:
 		}
 	};
 
+	void insertNode(int node) {
+		if (node != -1) nodeSet.insert(node);
+	}
+
+	void pushBackEdge(int node, edge e) {
+		if (node != -1) adjListGraph[node].push_back(e);
+	}
+
 	// 读取节点
-	void readNode(fstream& fs, set<int>& nodeSet) {
+	void readNode(fstream& fs) {
 		while (!fs.eof()) {
 			string rl;
 			fs >> rl;
 			stringstream rs(rl);
 			if (rl == "") continue;
-			if (find(rl.begin(), rl.end(), ',') == rl.end()) {
+			if (find(rl.begin(), rl.end(), DILIMETER) == rl.end()) {
 				char ch;
 				int node;
 				if (rs >> ch >> node) {
 					if (ch == '<')
-						nodeSet.insert(node);
+						insertNode(node);
 				}
 			}
 			else {
@@ -112,34 +156,42 @@ public:
 				// 一旦发现边上存在新节点，则将其加入到节点集合中。
 				edge e;
 				rs >> e;
-				nodeSet.insert(e.start);
-				nodeSet.insert(e.end);
+				insertNode(e.start);
+				insertNode(e.end);
 			}
 		}
 	}
 
 	// 读取边
-	void readEdge(fstream& fs, map<int,vector<edge>>& adjG) {
+	void readEdge(fstream& fs) {
 		while (!fs.eof()) {
 			string rl;
 			fs >> rl;
 			stringstream rs(rl);
-			if (rl == "" || find(rl.begin(), rl.end(), ',') == rl.end()) {
+			if (rl == "" || find(rl.begin(), rl.end(), DILIMETER) == rl.end()) {
 				char ch;
 				int node;
 				if (rs >> ch >> node) {
 					if (ch == '<')
-						adjG[node].push_back(edge());
+						pushBackEdge(node, edge());
 				}
 			}
 			else {
 				edge e;
 				rs >> e;
 				//if (isEmptyEdge(adjG, e.start))
-				//	adjG[e.start].pop_back();		// 清理占位符
-				adjG[e.start].push_back(e);
+				//	adjG[e.start].pop_back();		// 清理占位符，没有被清理
+				pushBackEdge(e.start, e);
 			}
 		}
+	}
+
+	// 读取节点与边
+	void readFile(fstream& fs) {
+		readNode(fs);
+		fs.clear(); // 如果在文件已经读取到结尾时，fstream的对象会将内部的eof state置位，这时使用 seekg() 函数不能将该状态去除，需要使用 clear() 方法。
+		fs.seekg(0, fstream::beg);	// 返回文件头
+		readEdge(fs);
 	}
 
 	bool isEmptyEdge(edge e) {

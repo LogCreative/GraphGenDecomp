@@ -5,6 +5,7 @@ int main(int argc, char* argv[]) {
 	GraphDecomp gd(20, "../GraphGen/1.txt", "./subGraph/");
 	gd.Decomp();
 	gd.Optimize();
+	cout << (gd.Check() ? "true" : "false") << endl;
 #else
 	if (argc == 1) error("Please assgin the main graph directory and subgraph directory.");
 	string _n = argv[1];

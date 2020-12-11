@@ -14,11 +14,16 @@
 	 (2) <a, v, <G1.d, weight>> v是虚节点，选择该方法，加快检索速度
 */
 
-
 /* 开发记录：
 	2020 / 11 / 25 ~				开发命令行基本功能
 									开发图形界面
 	2020 / 12 / 27	23:59			截止时间
+*/
+
+/*
+（1）提交到educoder上，
+（2）在助教指定的时间来找助教，生成图，针对若干已有的图进行计算，助教记录结果，检查代码、生成的子图并问问题
+（3）助教核对前期所有作业 / 成绩记录
 */
 
 #ifndef GRAPH_DECOMP_GUARD
@@ -76,6 +81,16 @@ protected:
 
 	// 得到文件名字符串
 	string getFileString(int label = -1);
+
+	/// <summary>
+	/// 获取文件夹中所有文件路径
+	/// </summary>
+	/// <param name="fileFolderPath">查找路径</param>
+	/// <param name="fileExtension">文件扩展名</param>
+	/// <param name="file">文件名向量组</param>
+	/// <param name="nameFilter">名称过滤器</param>
+	/// <returns></returns>
+	int getFiles(string fileFolderPath, string fileExtension, vector<string>& file, string nameFilter);
 };
 
 // 分解器
@@ -115,16 +130,6 @@ private:
 	queue<edge> pendingEdges;				// 等待存储的边队列
 	map<int, int> fileLineCnt;				// 存储文件行数
 
-	/// <summary>
-	/// 获取文件夹中所有文件路径
-	/// </summary>
-	/// <param name="fileFolderPath">查找路径</param>
-	/// <param name="fileExtension">文件扩展名</param>
-	/// <param name="file">文件名向量组</param>
-	/// <param name="nameFilter">名称过滤器</param>
-	/// <returns></returns>
-	int getFiles(string fileFolderPath, string fileExtension, vector<string>& file, string nameFilter);
-
 	// 获取文件名称
 	string parseFileName(string filePath);
 	// 获取字符串中的整数
@@ -138,6 +143,21 @@ private:
 	void optimizeUnit(string ifn, string ofn);
 	// 优化剩余边
 	void optimizeRemain();
+};
+
+// 检查器
+class Checker : Processor {
+	// 比较集合
+	template<typename K>
+	friend bool operator==(const set<K>& set1, const set<K>& set2);
+	// 比较映射
+	template<typename K, typename V>
+	friend bool operator==(const map<K, V>& map1, const map<K, V>& map2);
+	// 检查是否相等
+	friend bool operator==(Checker const &l, Checker const &r);
+public:
+	Checker(string _subDir, string _filter);
+	~Checker();
 };
 
 #endif // !GRAPH_DECOMP_GUARD

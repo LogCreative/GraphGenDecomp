@@ -22,7 +22,9 @@ void GraphDecomp::Optimize() {
 }
 
 bool GraphDecomp::Check() {
-	return true;
+	Checker decompChecker(subDir, DECOMPFIL);
+	Checker optChecker(subDir, OPTFIL);
+	return decompChecker == optChecker;
 }
 
 void GraphDecomp::ReachablePoints(int node) {
@@ -46,6 +48,33 @@ string Processor::getFileString(int label) {
 	return subDir + SUFFIX + to_string(label == -1 ? fileNum : label) + ".txt";
 }
 
+int Processor::getFiles(string fileFolderPath, string fileExtension, vector<string>& file, string nameFilter)
+{
+	// 摘自 https://blog.csdn.net/u014311125/article/details/93076784
+	string fileFolder = fileFolderPath + "\\*" + fileExtension;
+	string fileName;
+	struct _finddata_t fileInfo;
+	long long findResult = _findfirst(fileFolder.c_str(), &fileInfo);
+	if (findResult == -1)
+	{
+		_findclose(findResult);
+		return 0;
+	}
+	bool flag = 0;
+
+	do
+	{
+		fileName = fileFolderPath + '\\' + fileInfo.name;
+		if (fileInfo.attrib == _A_ARCH &&
+			strstr(fileInfo.name, nameFilter.c_str()) != NULL)			// 添加查找文件的过滤器
+		{
+			file.push_back(fileName);
+		}
+	} while (_findnext(findResult, &fileInfo) == 0);
+
+	_findclose(findResult);
+}
+
 Decomposer::Decomposer(int _n, fstream &fs, string _subDir) {
 	fileNum = 1;
 	n = _n;
@@ -54,11 +83,8 @@ Decomposer::Decomposer(int _n, fstream &fs, string _subDir) {
 
 	// 读取节点与边
 	nodeSet.clear();
-	readNode(fs, nodeSet);
 	adjListGraph.clear();
-	fs.clear(); // 如果在文件已经读取到结尾时，fstream的对象会将内部的eof state置位，这时使用 seekg() 函数不能将该状态去除，需要使用 clear() 方法。
-	fs.seekg(0, fstream::beg);	// 返回文件头
-	readEdge(fs, adjListGraph);
+	readFile(fs);
 
 	// 将孤立节点存储到一个文件中
 
@@ -162,33 +188,6 @@ Optimizer::Optimizer(int _n, string _subDir) {
 	getFiles(_subDir, fileExtension, txt_files, DECOMPFIL);
 }
 
-int Optimizer::getFiles(string fileFolderPath, string fileExtension, vector<string>& file, string nameFilter)
-{
-	// 摘自 https://blog.csdn.net/u014311125/article/details/93076784
-	string fileFolder = fileFolderPath + "\\*" + fileExtension;
-	string fileName;
-	struct _finddata_t fileInfo;
-	long long findResult = _findfirst(fileFolder.c_str(), &fileInfo);
-	if (findResult == -1)
-	{
-		_findclose(findResult);
-		return 0;
-	}
-	bool flag = 0;
-
-	do
-	{
-		fileName = fileFolderPath + '\\' + fileInfo.name;
-		if (fileInfo.attrib == _A_ARCH && 
-			strstr(fileInfo.name, nameFilter.c_str()) != NULL)			// 添加查找文件的过滤器
-		{
-			file.push_back(fileName);
-		}
-	} while (_findnext(findResult, &fileInfo) == 0);
-
-	_findclose(findResult);
-}
-
 string Optimizer::parseFileName(string filePath) {
 	auto beg = filePath.find('\\');
 	return filePath.substr(beg + 1, filePath.find_last_of('.') - beg - 1);
@@ -220,18 +219,29 @@ void Optimizer::optimizeUnit(string ifn, string ofn) {
 
 	int cnt = 0;
 
-	// 孤立节点不需要对边进行处理。
+	// 但是需要单独存储为一个文件中。
+	// 分布式节点存储。否则会在一个地方存储过多的存储过节点。
+
 	while (!ifs.eof()) {
 		string rl;
 		ifs >> rl;
 		if (rl == "") break;
 		stringstream rs(rl);
 		edge e;
-		rs >> e;
+		if (find(rl.begin(), rl.end(), ',') == rl.end()) {
+			// 孤立节点的处理
+			char ch;
+			int node;
+			if (rs >> ch >> node && ch == '<') {
+				ofs << '<' << node << '>' << endl;
+				++cnt;
+				continue;
+			}
+		}
+		else rs >> e;			// 边的处理
 
 		if (isEmptyEdge(e))
 			continue;			// 读到节点了 继续
-
 
 		auto sloc = storedNodes.find(e.start);
 		auto eloc = storedNodes.find(e.end);
@@ -342,3 +352,53 @@ void Optimizer::Optimize() {
 }
 
 Optimizer::~Optimizer() = default;
+
+Checker::Checker(string _subDir, string _filter) {
+	subDir = _subDir;
+	string fileExtension = ".txt";
+	vector<string> files;
+	getFiles(subDir, fileExtension, files, _filter);
+	for (auto f = files.begin(); f != files.end(); ++f) {
+		fstream cf(*f, fstream::in);
+		readFile(cf);
+		cf.close();
+	}
+}
+
+template<typename K>
+bool operator==(const set<K>& set1, const set<K>& set2) {
+	if (set1.size() != set2.size())
+		return false;
+
+	for (auto itl = set1.begin(), itr = set2.begin(); itl != set1.end(); ++itl, ++itr) 
+		if (*itl != *itr) 
+			return false;
+
+	return true;
+}
+
+template<typename K, typename V>
+bool operator==(const map<K, V>& map1, const map<K, V>& map2) {
+	if (map1.size() != map2.size())
+		return false;
+
+	for (auto it1 : map1) {
+		auto it2 = map2.find(it1.first);
+		if (it2 == map2.end()) return false;
+		else if (0 != memcmp(&it1.second, &it2->second, sizeof(V)))
+			return false;
+	}
+
+	return true;
+}
+
+bool operator==(Checker const &l, Checker const &r) {
+	if (l.nodeSet == r.nodeSet 
+		&& l.adjListGraph == r.adjListGraph
+		)
+		return true;
+	return false;
+}
+
+Checker::~Checker() = default;
+
