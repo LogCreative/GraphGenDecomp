@@ -221,6 +221,7 @@ void Optimizer::optimizeUnit(string ifn, string ofn) {
 
 	// 但是需要单独存储为一个文件中。
 	// 分布式节点存储。否则会在一个地方存储过多的存储过节点。
+	// 可以先分配点。孤立节点依然存于最后一批文件中。
 
 	while (!ifs.eof()) {
 		string rl;
@@ -228,7 +229,7 @@ void Optimizer::optimizeUnit(string ifn, string ofn) {
 		if (rl == "") break;
 		stringstream rs(rl);
 		edge e;
-		if (find(rl.begin(), rl.end(), ',') == rl.end()) {
+		if (find(rl.begin(), rl.end(), DILIMETER) == rl.end()) {
 			// 孤立节点的处理
 			char ch;
 			int node;
@@ -240,8 +241,8 @@ void Optimizer::optimizeUnit(string ifn, string ofn) {
 		}
 		else rs >> e;			// 边的处理
 
-		if (isEmptyEdge(e))
-			continue;			// 读到节点了 继续
+		//if (isEmptyEdge(e))
+		//	continue;			// 读到节点了 继续
 
 		auto sloc = storedNodes.find(e.start);
 		auto eloc = storedNodes.find(e.end);
@@ -255,23 +256,19 @@ void Optimizer::optimizeUnit(string ifn, string ofn) {
 			// 处理始点
 			if (sloc == tloc)
 				storedNodes.insert(make_pair(e.start, ifn));
-			else {
-				if (sloc->second != ifn) {
-					e.start = -1;
-					e.targetFile = getOptFileName(sloc->second);
-					e.targetNode = sloc->first;
-				}
+			else if (sloc->second != ifn) {
+				e.start = -1;
+				e.targetFile = getOptFileName(sloc->second);
+				e.targetNode = sloc->first;
 			}
 
 			// 处理终点
 			if (eloc == tloc)
 				storedNodes.insert(make_pair(e.end, ifn));
-			else {
-				if (eloc->second != ifn) {
-					e.end = -1;
-					e.targetFile = getOptFileName(eloc->second);
-					e.targetNode = eloc->first;
-				}
+			else if (eloc->second != ifn) {
+				e.end = -1;
+				e.targetFile = getOptFileName(eloc->second);
+				e.targetNode = eloc->first;
 			}
 
 			ofs << e;

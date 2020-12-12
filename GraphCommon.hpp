@@ -18,7 +18,8 @@
 					-1		对应结束节点
 */
 
-const char DILIMETER = ',';
+const char DILIMETER = ',';			// 边的切割符号
+const int RESNODE = 0;
 
 // 公共类
 class GraphCommon {
@@ -65,8 +66,8 @@ public:
 		string targetFile;
 		int targetNode;
 
-		edge() :start(0), end(0), weight(0), targetNode(-1) {}
-		edge(int s, int e, double w) : start(s), end(e), weight(w), targetNode(-1) {}
+		edge() :start(RESNODE), end(RESNODE), weight(RESNODE), targetNode(RESNODE) {}
+		edge(int s, int e, double w) : start(s), end(e), weight(w), targetNode(RESNODE) {}
 		edge(int s, int e, double w, string tf, int tn) : start(s), end(e), weight(w), targetFile(tf), targetNode(tn) {
 		}
 		~edge() = default;
@@ -101,7 +102,7 @@ public:
 					return ss;
 				}
 				if (et.start == -1 || et.end == -1) {
-					// 虚节点
+					// 虚节点，原生读取
 					string _remain;	// targetFile. targetNode, weight>>
 					if (ss >> ch3 >> ch4 >> _remain) {
 						if (ch3 != DILIMETER || ch4 != '<') {
@@ -128,12 +129,16 @@ public:
 		}
 	};
 
+	// 插入节点（有检查机制）
 	void insertNode(int node) {
 		if (node != -1) nodeSet.insert(node);
 	}
 
-	void pushBackEdge(int node, edge e) {
-		if (node != -1) adjListGraph[node].push_back(e);
+	// 推入边（转换机制）
+	void pushBackEdge(edge e) {
+		if (e.start == -1) e.start = e.targetNode;
+		else if (e.end == -1) e.end = e.targetNode;
+		adjListGraph[e.start].push_back(e);
 	}
 
 	// 读取节点
@@ -173,7 +178,7 @@ public:
 				int node;
 				if (rs >> ch >> node) {
 					if (ch == '<')
-						pushBackEdge(node, edge());
+						adjListGraph[node].push_back(edge());
 				}
 			}
 			else {
@@ -181,7 +186,7 @@ public:
 				rs >> e;
 				//if (isEmptyEdge(adjG, e.start))
 				//	adjG[e.start].pop_back();		// 清理占位符，没有被清理
-				pushBackEdge(e.start, e);
+				pushBackEdge(e);
 			}
 		}
 	}
@@ -194,8 +199,9 @@ public:
 		readEdge(fs);
 	}
 
+	// 是否为空边
 	bool isEmptyEdge(edge e) {
-		if (e.start == 0 && e.end == 0 && e.weight == 0)
+		if (e.start == RESNODE && e.end == RESNODE && e.weight == RESNODE)
 			return true;
 		return false;
 	}
