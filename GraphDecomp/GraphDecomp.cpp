@@ -3,7 +3,14 @@
 GraphDecomp::GraphDecomp(int _n, string _mainDir, string _subDir):
 	n(_n), mainDir(_mainDir), subDir(_subDir)
 {
-	
+	//clearSubFolder(); // 现在是异步调用
+}
+
+void GraphDecomp::ResetSubFolder() {
+	string command_rd = "rd /s /q \"" + subDir + '\"';
+	system(command_rd.c_str());
+	string command_md = "md \"" + subDir + '\"';
+	system(command_md.c_str());
 }
 
 void GraphDecomp::Decomp() {
@@ -28,23 +35,20 @@ bool GraphDecomp::Check() {
 }
 
 void GraphDecomp::ReachablePoints(int node) {
-	// 图的存储：邻接表
-	/* //naive method
-	vector<edge> connectedEdges = adjListGraph[node];
-	set<int> reachablePoints;
-	for (auto e : connectedEdges) reachablePoints.insert(e.end);
-	for (auto n : reachablePoints) cout << n << endl;
-	*/
+	Finder nfd(subDir);
+	nfd.ReachableNodes(node);
 }
 
 void GraphDecomp::ShortestPath(int start, int end) {
 	// Dijkstra
-
+	Finder pfd(subDir);
+	if (pfd.ShortestPath(start, end) == -1)
+		error("These two nodes are not connected!");
 }
 
 GraphDecomp::~GraphDecomp() = default;
 
-string Processor::getFileString(int label) {
+string Processor::getFileString(fileNo label) {
 	return subDir + SUFFIX + to_string(label == -1 ? fileNum : label) + ".txt";
 }
 
@@ -73,6 +77,24 @@ int Processor::getFiles(string fileFolderPath, string fileExtension, vector<stri
 	} while (_findnext(findResult, &fileInfo) == 0);
 
 	_findclose(findResult);
+}
+
+string Processor::parseFileName(string filePath) {
+	auto beg = filePath.find('\\');
+	return filePath.substr(beg + 1, filePath.find_last_of('.') - beg - 1);
+}
+
+int Processor::parseInt(string str) {
+	int n = 0;
+	for (auto c : str) {
+		if (c >= '0' && c <= '9')
+			n = n * 10 + c - '0';
+	}
+	return n;
+}
+
+fileNo Processor::parseFileInt(string filePath) {
+	return parseInt(parseFileName(filePath));
 }
 
 Decomposer::Decomposer(int _n, fstream &fs, string _subDir) {
@@ -190,24 +212,6 @@ Optimizer::Optimizer(int _n, string _subDir) {
 	// 遍历文件
 	string fileExtension = ".txt";
 	getFiles(_subDir, fileExtension, txt_files, DECOMPFIL);
-}
-
-string Optimizer::parseFileName(string filePath) {
-	auto beg = filePath.find('\\');
-	return filePath.substr(beg + 1, filePath.find_last_of('.') - beg - 1);
-}
-
-int Optimizer::parseInt(string str) {
-	int n = 0;
-	for (auto c : str) {
-		if (c >= '0' && c <= '9')
-			n = n * 10 + c - '0';
-	}
-	return n;
-}
-
-int Optimizer::parseFileInt(string filePath) {
-	return parseInt(parseFileName(filePath));
 }
 
 string Optimizer::getOptFileName(string oriPath) {
@@ -361,7 +365,7 @@ Checker::Checker(string _subDir, string _filter) {
 	getFiles(subDir, fileExtension, files, _filter);
 	for (auto f = files.begin(); f != files.end(); ++f) {
 		fstream cf(*f, fstream::in);
-		readFile(cf);
+		readFile(cf, true);
 		cf.close();
 	}
 }
@@ -407,3 +411,102 @@ bool operator==(Checker const &l, Checker const &r) {
 
 Checker::~Checker() = default;
 
+Finder::Finder(string _subDir) {
+	subDir = _subDir;
+	SUFFIX = OPTFIL;
+	getFiles(subDir, ".txt", files, SUFFIX);
+}
+
+string Finder::findStoredFile(int node) {
+	for (auto f = files.begin(); f != files.end(); ++f) {
+		fstream ff(*f, fstream::in);
+		while (!ff.eof()) {
+			string fl;
+			ff >> fl;
+			stringstream fss(fl);
+			char ch1, ch2;
+			int start, end;
+			if (fss >> ch1 >> start >> ch2 >> end) {
+				if (start == node || end == node) {
+					ff.close();
+					return *f;
+				}
+			}
+		}
+		ff.close();
+	}
+	return "";
+}
+
+void Finder::loadSubgraph(fileNo fn) {
+	fstream rf(getFileString(fn), fstream::in);
+	FileUnit fu;
+	fu.readFile(rf);
+	subGraphs[fn] = fu;
+}
+
+void Finder::searchReachableNodes(int node) {
+	string initialFile = findStoredFile(node);	// 搜索开始基点
+	if (initialFile == "") error("No such node is found!");
+	reachableNodes.insert(node);				// 查找基点
+	visitFileQueue.push(make_pair(parseFileInt(initialFile), queue<int>({ node })));
+
+	// 算法正确性？
+	// 考虑虚边 以及只能有一个虚节点的事情
+	// 虚边是关键 存储虚边
+	// 文件是一个广义节点
+	// 访问过的节点将不会被重复访问
+	// 访问过的文件的图将会被存储 不会被重新加载
+
+	while (!visitFileQueue.empty()) {
+		auto cur = visitFileQueue.front();
+		visitFileQueue.pop();
+
+		if (subGraphs.find(cur.first) == subGraphs.end())
+			loadSubgraph(cur.first);
+
+		queue<int> subVisitQueue = cur.second;
+		map<fileNo, queue<int>> visitFileMap;
+
+		while (!subVisitQueue.empty()) {
+			int tn = subVisitQueue.front();
+			subVisitQueue.pop();
+
+			// BFS 搜索
+			auto edgeList = subGraphs[cur.first].adjListGraph[tn];
+			for (auto e = edgeList.begin(); e != edgeList.end(); ++e) {
+				int ending = e->end;
+				if (ending != -1) {
+					if (reachableNodes.find(ending) == reachableNodes.end())
+						subVisitQueue.push(ending);
+					reachableNodes.insert(ending);
+				}
+				else
+					// 虚边
+					visitFileMap[parseFileInt(e->targetFile)].push(e->targetNode);
+			}
+		}
+
+		for (auto m = visitFileMap.begin(); m != visitFileMap.end(); ++m)
+			visitFileQueue.push(*m);
+	}
+}
+
+void Finder::ReachableNodes(int node) {
+	searchReachableNodes(node);
+
+	// 打印可达节点
+	for (auto i = reachableNodes.begin(); i != reachableNodes.end(); ++i)
+		cout << *i << endl;
+
+}
+
+double Finder::ShortestPath(int start, int end) {
+	searchReachableNodes(start);
+	if (reachableNodes.find(end) == reachableNodes.end())
+		return -1;				// 不可达
+
+	return -1;
+}
+
+Finder::~Finder() = default;

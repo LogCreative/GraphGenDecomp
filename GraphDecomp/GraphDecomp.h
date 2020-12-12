@@ -35,6 +35,8 @@
 const string DECOMPFIL = "A";
 const string OPTFIL = "O";
 
+typedef int fileNo;						// 文件编号
+
 class GraphDecomp : GraphCommon {
 public:
 	// 创建图分割器
@@ -65,6 +67,8 @@ public:
 	// - 指定两个点，输出最短路径
 	// 如果指定的节点不存在，报错即可
 	void ShortestPath(int start, int end);
+
+	void ResetSubFolder();			// 重设子文件夹
 private:
 	int n;
 	string mainDir;		// 主图文件
@@ -80,7 +84,7 @@ protected:
 	string SUFFIX;		// 文件前缀
 
 	// 得到文件名字符串
-	string getFileString(int label = -1);
+	string getFileString(fileNo label = -1);
 
 	/// <summary>
 	/// 获取文件夹中所有文件路径
@@ -91,6 +95,13 @@ protected:
 	/// <param name="nameFilter">名称过滤器</param>
 	/// <returns></returns>
 	int getFiles(string fileFolderPath, string fileExtension, vector<string>& file, string nameFilter);
+
+	// 获取文件名称
+	string parseFileName(string filePath);
+	// 获取字符串中的整数
+	int parseInt(string str);
+	// 获取文件名中的整数
+	fileNo parseFileInt(string filePath);
 };
 
 // 分解器
@@ -133,12 +144,6 @@ private:
 	queue<edge> pendingEdges;				// 等待存储的边队列
 	map<int, int> fileLineCnt;				// 存储文件行数
 
-	// 获取文件名称
-	string parseFileName(string filePath);
-	// 获取字符串中的整数
-	int parseInt(string str);
-	// 获取文件名中的整数
-	int parseFileInt(string filePath);
 	// 获取优化后对应的文件名
 	string getOptFileName(string oriPath);
 
@@ -150,6 +155,10 @@ private:
 
 // 检查器
 class Checker : Processor {
+public:
+	Checker(string _subDir, string _filter);
+	~Checker();
+private:
 	// 比较集合
 	template<typename K>
 	friend bool operator==(const set<K>& set1, const set<K>& set2);
@@ -157,9 +166,31 @@ class Checker : Processor {
 	friend bool CompareMap(const map<int, vector<edge>> &map1, const map<int, vector<edge>> &map2);
 	// 检查是否相等
 	friend bool operator==(Checker const &l, Checker const &r);
+};
+
+// 文件单元
+class FileUnit : public GraphCommon {
+
+};
+
+// 查找器
+class Finder : Processor {
 public:
-	Checker(string _subDir, string _filter);
-	~Checker();
+	Finder(string _subDir);
+	~Finder();
+	void ReachableNodes(int node);
+	double ShortestPath(int start, int end);
+private:
+	vector<string> files;					// 文件集合
+	map < fileNo, FileUnit > subGraphs;	// 子图
+	queue<pair<fileNo, queue<int>>> visitFileQueue;			// 文件访问队列以及需要访问的节点
+	set<int> reachableNodes;				// 可达点集合
+	// 寻找存储节点的文件
+	string findStoredFile(int node);
+	// 加载子图
+	void loadSubgraph(fileNo fn);
+	// 搜索可达节点
+	void searchReachableNodes(int node);
 };
 
 #endif // !GRAPH_DECOMP_GUARD

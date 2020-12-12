@@ -186,7 +186,7 @@ public:
 	}
 
 	// 读取边
-	void readEdge(fstream& fs) {
+	void readEdge(fstream& fs, bool convert = false) {
 		while (!fs.eof()) {
 			string rl;
 			fs >> rl;
@@ -204,17 +204,18 @@ public:
 				rs >> e;
 				//if (isEmptyEdge(adjG, e.start))
 				//	adjG[e.start].pop_back();		// 清理占位符，没有被清理
-				pushBackEdge(e);
+				if (convert) pushBackEdge(e);
+				else adjListGraph[e.start].push_back(e);
 			}
 		}
 	}
 
 	// 读取节点与边
-	void readFile(fstream& fs) {
+	void readFile(fstream& fs, bool convert = false) {
 		readNode(fs);
 		fs.clear(); // 如果在文件已经读取到结尾时，fstream的对象会将内部的eof state置位，这时使用 seekg() 函数不能将该状态去除，需要使用 clear() 方法。
 		fs.seekg(0, fstream::beg);	// 返回文件头
-		readEdge(fs);
+		readEdge(fs, convert);
 	}
 
 	// 是否为空边
@@ -231,7 +232,7 @@ public:
 		return false;
 	}
 
-protected:
+public:
 	set<int> nodeSet;			// 节点集合
 	map<int, vector<edge>> adjListGraph;	// 邻接表图
 };
