@@ -256,7 +256,7 @@ void Optimizer::optimizeUnit(string ifn, string ofn) {
 		auto eloc = storedNodes.find(e.end);
 		auto tloc = storedNodes.end();
 
-		if (sloc != tloc && eloc != tloc || 
+		if ((sloc != tloc && eloc != tloc) ||
 			e.start == e.end)
 			pendingEdges.push(e);			// 之后再分配
 		else {
@@ -304,13 +304,12 @@ void Optimizer::optimizeRemain() {
 		auto sloc = storedNodes.find(e.start);
 		auto eloc = storedNodes.find(e.end);
 
-		if (e.start == e.end) {		// 自环
-			// 虚边
+		if (e.start != e.end) {
 			if (fileLineCnt[parseFileInt(storedNodes[e.start])] >= n) {
 				// 放在结束点所在文件
 				int endC = parseFileInt(eloc->second);
 				fstream nofs(getFileString(endC), fstream::app);
-				e.end = -1;
+				e.start = -1;
 				e.targetFile = getOptFileName(sloc->second);
 				e.targetNode = sloc->first;
 				nofs << e;
@@ -321,7 +320,7 @@ void Optimizer::optimizeRemain() {
 				// 放在开始点所在文件
 				int startC = parseFileInt(sloc->second);
 				fstream nofs(getFileString(startC), fstream::app);
-				e.start = -1;
+				e.end = -1;
 				e.targetFile = getOptFileName(eloc->second);
 				e.targetNode = eloc->first;
 				nofs << e;
@@ -329,15 +328,13 @@ void Optimizer::optimizeRemain() {
 				nofs.close();
 			}
 		}
-		else {
-			// 考虑新的策略
+		else {		// 自环
 			int endC = parseFileInt(eloc->second);
 			fstream nofs(getFileString(endC), fstream::app);
 			nofs << e;
 			fileLineCnt[endC]++;
 			nofs.close();
 		}
-		
 	}
 
 }
@@ -448,7 +445,7 @@ void Finder::loadSubgraph(fileNo fn) {
 void Finder::searchReachableNodes(int node) {
 	string initialFile = findStoredFile(node);	// 搜索开始基点
 	if (initialFile == "") error("No such node is found!");
-	reachableNodes.insert(node);				// 查找基点
+	//reachableNodes.insert(node);				// 起始节点从一开始不是可达点
 	visitFileQueue.push(make_pair(parseFileInt(initialFile), queue<int>({ node })));
 
 	// 算法正确性？
@@ -472,7 +469,7 @@ void Finder::searchReachableNodes(int node) {
 			int tn = subVisitQueue.front();
 			subVisitQueue.pop();
 
-			// BFS 搜索
+			// BFS 搜索，考虑指出边
 			auto edgeList = subGraphs[cur.first].adjListGraph[tn];
 			for (auto e = edgeList.begin(); e != edgeList.end(); ++e) {
 				int ending = e->end;
@@ -481,9 +478,11 @@ void Finder::searchReachableNodes(int node) {
 						subVisitQueue.push(ending);
 					reachableNodes.insert(ending);
 				}
-				else
+				else {
 					// 虚边
 					visitFileMap[parseFileInt(e->targetFile)].push(e->targetNode);
+					reachableNodes.insert(e->targetNode);
+				}
 			}
 		}
 
