@@ -288,7 +288,7 @@ void Optimizer::optimizeUnit(string ifn, string ofn) {
 
 void Optimizer::optimizeRemain() {
 	// 剩余边再分配，处理起点和终点都不在之前图的情形
-	// 需要比较复杂的分配策略
+	// 需要比较复杂的分配策略（切割策略需要改进）
 
 	vector<string> opt_txt_files;
 	getFiles(subDir, ".txt", opt_txt_files, OPTFIL);
@@ -300,7 +300,7 @@ void Optimizer::optimizeRemain() {
 		auto sloc = storedNodes.find(e.start);
 		auto eloc = storedNodes.find(e.end);
 
-		if (e.start == e.end) {
+		if (e.start == e.end) {		// 自环
 			// 虚边
 			if (fileLineCnt[parseFileInt(storedNodes[e.start])] >= n) {
 				// 放在结束点所在文件
@@ -378,15 +378,6 @@ bool operator==(const set<K>& set1, const set<K>& set2) {
 	return true;
 }
 
-bool cmpEdge(const GraphCommon::edge &e1, const GraphCommon::edge &e2) {
-	if (e1.start < e2.start) return true;
-	else if (e1.start > e2.start) return false;
-	if (e1.end < e2.end) return true;
-	else if (e1.end > e2.end) return false;
-	if (e1.weight < e2.weight) return true;
-	else return false;
-}
-
 bool CompareMap(const map<int, vector<GraphCommon::edge>> &map1, const map<int, vector<GraphCommon::edge>> &map2) {
 	if (map1.size() != map2.size())
 		return false;
@@ -396,8 +387,8 @@ bool CompareMap(const map<int, vector<GraphCommon::edge>> &map1, const map<int, 
 		if (it2t == map2.end()) return false;
 		else {
 			auto it2 = *it2t;			// 需要转为局部变量进行比较
-			sort(it1.second.begin(), it1.second.end(), cmpEdge);
-			sort(it2.second.begin(), it2.second.end(), cmpEdge);
+			sort(it1.second.begin(), it1.second.end());
+			sort(it2.second.begin(), it2.second.end());
 			if (!equal(it1.second.begin(), it1.second.end(), it2.second.begin()))
 				return false;
 		}

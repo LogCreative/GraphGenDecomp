@@ -74,6 +74,15 @@ public:
 
 		/* 该部分没有考虑虚边因素 */
 
+		friend bool operator<(const edge& e1, const edge& e2) {
+			if (e1.start < e2.start) return true;
+			else if (e1.start > e2.start) return false;
+			if (e1.end < e2.end) return true;
+			else if (e1.end > e2.end) return false;
+			if (e1.weight < e2.weight) return true;
+			else return false;
+		}
+
 		friend bool operator==(const edge &e1, const edge &e2){
 			if (e1.start == e2.start && e1.end == e2.end && e1.weight == e2.weight)
 				return true;

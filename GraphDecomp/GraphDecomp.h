@@ -150,8 +150,6 @@ private:
 
 // 检查器
 class Checker : Processor {
-	// 边的比较函数
-	friend bool cmpEdge(const edge &e1, const edge &e2);
 	// 比较集合
 	template<typename K>
 	friend bool operator==(const set<K>& set1, const set<K>& set2);
