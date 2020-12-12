@@ -172,6 +172,10 @@ void Decomposer::BFS() {
 	writeNodeFile();
 }
 
+void Decomposer::DFS() {
+
+}
+
 void Decomposer::Kerninghan_Lin() {
 	// TODO
 }
@@ -296,7 +300,7 @@ void Optimizer::optimizeRemain() {
 		auto sloc = storedNodes.find(e.start);
 		auto eloc = storedNodes.find(e.end);
 
-		if (sloc->second != eloc->second) {
+		if (e.start == e.end) {
 			// 虚边
 			if (fileLineCnt[parseFileInt(storedNodes[e.start])] >= n) {
 				// 放在结束点所在文件
@@ -374,16 +378,29 @@ bool operator==(const set<K>& set1, const set<K>& set2) {
 	return true;
 }
 
-template<typename K, typename V>
-bool operator==(const map<K, V>& map1, const map<K, V>& map2) {
+bool cmpEdge(const GraphCommon::edge &e1, const GraphCommon::edge &e2) {
+	if (e1.start < e2.start) return true;
+	else if (e1.start > e2.start) return false;
+	if (e1.end < e2.end) return true;
+	else if (e1.end > e2.end) return false;
+	if (e1.weight < e2.weight) return true;
+	else return false;
+}
+
+bool CompareMap(const map<int, vector<GraphCommon::edge>> &map1, const map<int, vector<GraphCommon::edge>> &map2) {
 	if (map1.size() != map2.size())
 		return false;
 
 	for (auto it1 : map1) {
-		auto it2 = map2.find(it1.first);
-		if (it2 == map2.end()) return false;
-		else if (0 != memcmp(&it1.second, &it2->second, sizeof(V)))
-			return false;
+		auto it2t = map2.find(it1.first);
+		if (it2t == map2.end()) return false;
+		else {
+			auto it2 = *it2t;			// 需要转为局部变量进行比较
+			sort(it1.second.begin(), it1.second.end(), cmpEdge);
+			sort(it2.second.begin(), it2.second.end(), cmpEdge);
+			if (!equal(it1.second.begin(), it1.second.end(), it2.second.begin()))
+				return false;
+		}
 	}
 
 	return true;
@@ -391,7 +408,7 @@ bool operator==(const map<K, V>& map1, const map<K, V>& map2) {
 
 bool operator==(Checker const &l, Checker const &r) {
 	if (l.nodeSet == r.nodeSet 
-		&& l.adjListGraph == r.adjListGraph
+		&& CompareMap(l.adjListGraph, r.adjListGraph)
 		)
 		return true;
 	return false;
