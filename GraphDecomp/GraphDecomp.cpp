@@ -1,9 +1,9 @@
 #include "GraphDecomp.h"
 
-GraphDecomp::GraphDecomp(int _n, string _mainDir, string _subDir):
+GraphDecomp::GraphDecomp(int _n, string _mainDir, string _subDir) :
 	n(_n), mainDir(_mainDir), subDir(_subDir)
 {
-	//clearSubFolder(); // 现在是异步调用
+	ResetSubFolder();
 }
 
 void GraphDecomp::ResetSubFolder() {
@@ -40,9 +40,8 @@ void GraphDecomp::ReachablePoints(int node) {
 }
 
 void GraphDecomp::ShortestPath(int start, int end) {
-	// Dijkstra
 	Finder pfd(subDir);
-	if (pfd.ShortestPath(start, end) == -1)
+	if (pfd.ShortestPath(start, end) == INF)
 		error("These two nodes are not connected!");
 }
 
@@ -256,7 +255,7 @@ void Optimizer::optimizeUnit(string ifn, string ofn) {
 		auto eloc = storedNodes.find(e.end);
 		auto tloc = storedNodes.end();
 
-		if ((sloc != tloc && eloc != tloc) ||
+		if ((sloc != tloc && eloc != tloc && sloc->second != ifn && eloc->second != ifn) ||
 			e.start == e.end)
 			pendingEdges.push(e);			// 之后再分配
 		else {
@@ -304,7 +303,14 @@ void Optimizer::optimizeRemain() {
 		auto sloc = storedNodes.find(e.start);
 		auto eloc = storedNodes.find(e.end);
 
-		if (e.start != e.end) {
+		if (sloc->second == eloc->second) {
+			int endC = parseFileInt(eloc->second);
+			fstream nofs(getFileString(endC), fstream::app);
+			nofs << e;
+			fileLineCnt[endC]++;
+			nofs.close();
+		}
+		else {
 			if (fileLineCnt[parseFileInt(storedNodes[e.start])] >= n) {
 				// 放在结束点所在文件
 				int endC = parseFileInt(eloc->second);
@@ -327,13 +333,6 @@ void Optimizer::optimizeRemain() {
 				fileLineCnt[startC]++;
 				nofs.close();
 			}
-		}
-		else {		// 自环
-			int endC = parseFileInt(eloc->second);
-			fstream nofs(getFileString(endC), fstream::app);
-			nofs << e;
-			fileLineCnt[endC]++;
-			nofs.close();
 		}
 	}
 
@@ -500,12 +499,81 @@ void Finder::ReachableNodes(int node) {
 
 }
 
-double Finder::ShortestPath(int start, int end) {
-	searchReachableNodes(start);
-	if (reachableNodes.find(end) == reachableNodes.end())
-		return -1;				// 不可达
+bool Finder::findLoop(int cur, int target) {
+	if (cur == target) return true;
+	if (prev[cur] == cur) return false;			// 追溯到起始点
+	return findLoop(prev[cur], target);
+}
 
-	return -1;
+double Finder::findShortestPath(int start, int end) {
+	map<int, double> distance;
+
+	string initialFile = findStoredFile(start);	// 搜索开始基点
+	if (initialFile == "") error("No such node is found!");
+	visitFileQueue.push(make_pair(parseFileInt(initialFile), queue<int>({ start })));
+
+	// 分布式 SPFA 算法
+	// Shortest Path Faster Alogrithm
+	// SPFA 在形式上和BFS非常类似，不同的是BFS中一个点出了队列就不可能重新进入队列，但是SPFA中一个点可能在出队列之后再次被放入队列，也就是一个点改进过其它的点之后，过了一段时间可能本身被改进，于是再次用来改进其它的点，这样反复迭代下去。
+
+	distance[start] = 0;
+	prev[start] = start;
+
+	while (!visitFileQueue.empty()) {
+		auto cur = visitFileQueue.front();
+		visitFileQueue.pop();
+
+		if (subGraphs.find(cur.first) == subGraphs.end())
+			loadSubgraph(cur.first);
+
+		queue<int> subVisitQueue = cur.second;
+		map<fileNo, queue<int>> visitFileMap;
+
+		while (!subVisitQueue.empty()) {
+			int tn = subVisitQueue.front();
+			subVisitQueue.pop();
+
+			// 考虑指出边
+			auto edgeList = subGraphs[cur.first].adjListGraph[tn];
+			for (auto e = edgeList.begin(); e != edgeList.end(); ++e) {
+				if (e->start == e->end || findLoop(e->start, e->end)) 
+					continue;					// 环路不是最短路径
+				int ending = e->end;
+				if (ending == -1) {
+					// 虚边
+					visitFileMap[parseFileInt(e->targetFile)].push(e->targetNode);
+					ending = e->targetNode;
+				}
+				if (distance.find(ending) == distance.end() ||
+					e->weight <= distance[ending]) {
+					distance[ending] = distance[tn] + e->weight;
+					prev[ending] = tn;
+					subVisitQueue.push(ending);
+				}
+			}
+		}
+
+		for (auto m = visitFileMap.begin(); m != visitFileMap.end(); ++m)
+			visitFileQueue.push(*m);
+	}
+
+	if (distance.find(end) == distance.end())
+		return INF;
+	return distance[end];
+}
+
+void Finder::prtPath(int cur, int target, int finish) {
+	if (cur != target) prtPath(prev[cur], target, finish);
+	cout << cur << (cur == finish ? "\n" : "->");
+}
+
+double Finder::ShortestPath(int start, int end) {
+	double res = findShortestPath(start, end);
+	if (res != INF) { 
+		prtPath(end, start, end);
+		cout << "路径长度：" << res << endl; 
+	}
+	return res;
 }
 
 Finder::~Finder() = default;

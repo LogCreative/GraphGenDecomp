@@ -15,7 +15,8 @@
 */
 
 /* 开发记录：
-	2020 / 11 / 25 ~				开发命令行基本功能
+	2020 / 11 / 25 ~ 2020 / 12 / 13 第一个可用版本
+	2020 / 12 / 13 ~				改进分割算法
 									开发图形界面
 	2020 / 12 / 27	23:59			截止时间
 */
@@ -31,6 +32,7 @@
 
 #include "../std_lib_facilities.h"
 #include "../GraphCommon.hpp"
+#define INF -1						// 负无穷大距离
 
 const string DECOMPFIL = "A";
 const string OPTFIL = "O";
@@ -182,8 +184,9 @@ public:
 	double ShortestPath(int start, int end);
 private:
 	vector<string> files;					// 文件集合
-	map < fileNo, FileUnit > subGraphs;	// 子图
+	map < fileNo, FileUnit > subGraphs;		// 子图
 	queue<pair<fileNo, queue<int>>> visitFileQueue;			// 文件访问队列以及需要访问的节点
+	map<int, int> prev;						// 前继节点
 	set<int> reachableNodes;				// 可达点集合
 	// 寻找存储节点的文件
 	string findStoredFile(int node);
@@ -191,6 +194,12 @@ private:
 	void loadSubgraph(fileNo fn);
 	// 搜索可达节点
 	void searchReachableNodes(int node);
+	// 寻找环路
+	bool findLoop(int cur, int target);
+	// 寻找最短路径
+	double findShortestPath(int start, int end);
+	// 打印路径
+	void prtPath(int cur, int target, int finish);
 };
 
 #endif // !GRAPH_DECOMP_GUARD

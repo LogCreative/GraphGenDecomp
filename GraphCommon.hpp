@@ -89,6 +89,11 @@ public:
 			return false;
 		}
 
+		friend bool operator>(const edge& e1, const edge& e2) {
+			if (e1 < e2 || e1 == e2) return false;
+			return true;
+		}
+
 		// 输出函数
 		friend fstream& operator<<(fstream& fs, const edge& e) {
 			if (e.start != -1 && e.end != -1)

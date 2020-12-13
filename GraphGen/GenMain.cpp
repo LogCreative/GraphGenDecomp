@@ -5,7 +5,7 @@
 int main(int argc, char* argv[]) {
 #ifdef _DEBUG
 	GraphGen gg("1.txt", discrete, Graph, Multi);
-	gg.NewGraph(20);
+	gg.NewGraph(100);
 #else
 	if (argc == 1) error("Please assign the file parameters.");
 	string directory = argv[1];			// 第一个参数作为文件参数
