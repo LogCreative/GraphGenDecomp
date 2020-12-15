@@ -2,12 +2,12 @@
 
 int main(int argc, char* argv[]) {
 #ifdef _DEBUG
-	GraphDecomp gd(10, "../GraphGen/1.txt", "./subGraph/");
+	GraphDecomp gd(10, "../GraphGen/G.txt", "./subGraph/");
 	gd.Decomp();
 	gd.Optimize();
 	cout << (gd.Check() ? "true" : "false") << endl;
-	gd.ReachablePoints(1580);
-	gd.ShortestPath(1580, 1300);
+	gd.ReachablePoints(83);
+	gd.ShortestPath(83, 49);
 #else
 	if (argc == 1) error("Please assgin the main graph directory and subgraph directory.");
 	string _n = argv[1];

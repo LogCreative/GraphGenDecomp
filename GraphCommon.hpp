@@ -18,19 +18,21 @@
 					-1		对应结束节点
 */
 
+const char R_PREFIX = 'P';			// 读取时的节点前缀
+const char R_DILIMETER = ' ';		// 读取时的分割符号
 const char DILIMETER = ',';			// 边的切割符号
-const int RESNODE = 0;
+const int RESNODE = -2;				// 保留节点
 
 // 公共类
 class GraphCommon {
 public:
-	/*
-	* 暂时不启用，当需要更改节点存储类型时再更改
-	// 节点的定义
+	// 节点的定义，首先用于算法
 	struct node {
-		int data;
+		int data;							// 点的标识符
 
-		node(): data(0) {}
+		map<int, double> adjMatCol;			// 邻接矩阵列
+
+		node(): data(RESNODE) {}
 		node(int d) : data(d) {}
 		~node() = default;
 
@@ -43,10 +45,9 @@ public:
 		// 读取节点字符串
 		friend stringstream& operator>>(stringstream& ss, node& n) {
 			node nt;
-			
-			char ch1, ch2;
-			if (ss >> ch1 >> nt.data >> ch2) {
-				if (ch1 != '<' || ch2 != '>') {
+			char ch1;
+			if (ss >> ch1 >> nt.data) {
+				if (ch1 != '<') {
 					ss.clear(fstream::failbit);
 					return ss;
 				}
@@ -55,8 +56,9 @@ public:
 			n = nt;
 			return ss;
 		}
+
+
 	};
-	*/
 
 	// 有向边的定义
 	struct edge {
@@ -75,11 +77,11 @@ public:
 		/* 该部分没有考虑虚边因素 */
 
 		friend bool operator<(const edge& e1, const edge& e2) {
+			if (e1.weight < e2.weight) return true;
+			else if (e1.weight > e2.weight) return false;
 			if (e1.start < e2.start) return true;
 			else if (e1.start > e2.start) return false;
 			if (e1.end < e2.end) return true;
-			else if (e1.end > e2.end) return false;
-			if (e1.weight < e2.weight) return true;
 			else return false;
 		}
 
@@ -115,6 +117,7 @@ public:
 				+ '>' + '\n';
 			return fs;
 		}
+
 		// 读取边的字符串
 		friend stringstream& operator>>(stringstream& ss, edge& e) {
 			char ch1 = 0, ch2 = 0, ch3 = 0, ch4 = 0;
@@ -150,34 +153,21 @@ public:
 			e = et;
 			return ss;
 		}
+
 	};
-
-	// 插入节点（有检查机制）
-	void insertNode(int node) {
-		if (node != -1) nodeSet.insert(node);
-	}
-
-	// 推入边（转换机制）
-	void pushBackEdge(edge e) {
-		if (e.start == -1) e.start = e.targetNode;
-		else if (e.end == -1) e.end = e.targetNode;
-		adjListGraph[e.start].push_back(e);
-	}
 
 	// 读取节点
 	void readNode(fstream& fs) {
 		while (!fs.eof()) {
 			string rl;
-			fs >> rl;
+			getline(fs, rl);
 			stringstream rs(rl);
 			if (rl == "") continue;
+
 			if (find(rl.begin(), rl.end(), DILIMETER) == rl.end()) {
-				char ch;
-				int node;
-				if (rs >> ch >> node) {
-					if (ch == '<')
-						insertNode(node);
-				}
+				node rn;
+				rs >> rn;
+				insertNode(rn.data);
 			}
 			else {
 				// ⚠	每个边新添加时，所涉及的两个节点未必存在于已输入的<节点编号>集合内，
@@ -194,15 +184,13 @@ public:
 	void readEdge(fstream& fs, bool convert = false) {
 		while (!fs.eof()) {
 			string rl;
-			fs >> rl;
+			getline(fs, rl);
 			stringstream rs(rl);
-			if (rl == "" || find(rl.begin(), rl.end(), DILIMETER) == rl.end()) {
-				char ch;
-				int node;
-				if (rs >> ch >> node) {
-					if (ch == '<')
-						adjListGraph[node].push_back(edge());
-				}
+			if (rl == "") continue;
+			if (find(rl.begin(), rl.end(), DILIMETER) == rl.end()) {
+				node rn;
+				rs >> rn;
+				adjListGraph[rn.data].push_back(edge());
 			}
 			else {
 				edge e;
@@ -223,6 +211,72 @@ public:
 		readEdge(fs, convert);
 	}
 
+	// 读取生文件，只调用一次
+	void readRawFile(fstream& fs) {
+		while (!fs.eof()) {
+			string rl;
+			getline(fs, rl);
+			stringstream rs(rl);
+			if (rl == "") continue;
+
+			if (find(rl.begin(), rl.end(), R_DILIMETER) == rl.end()) {
+				char ch, pre;
+				int node;
+				if ((R_PREFIX!='\0' && rs >> ch >> pre >> node) 
+					|| rs >> ch >> node) {
+					if (ch == '<') insertNode(node);
+				}
+			}
+			else {
+				edge e;
+				char ch1, ch2, ch3, pre1, pre2;
+				if (rs >> ch1) {
+					if (R_PREFIX != '\0') rs >> pre1;
+					rs >> e.start;
+					if (R_DILIMETER != ' ') rs >> ch2;
+					if (R_PREFIX != '\0') rs >> pre2;
+					rs >> e.end;
+					if (R_DILIMETER != ' ') rs >> ch3;
+					rs >> e.weight;
+				}
+				insertNode(e.start);
+				insertNode(e.end);
+			}
+		}
+		fs.clear();
+		fs.seekg(0, fstream::beg);
+		while (!fs.eof()) {
+			string rl;
+			getline(fs, rl);
+			stringstream rs(rl);
+			if (rl == "") continue;
+			if (find(rl.begin(), rl.end(), R_DILIMETER) == rl.end()) {
+				char ch, pre;
+				int node;
+				if ((R_PREFIX != '\0' && rs >> ch >> pre >> node) || rs >> ch >> node) {
+					if (ch == '<')
+						adjListGraph[node].push_back(edge());
+				}
+			}
+			else {
+				edge e;
+				char ch1, ch2, ch3, pre1, pre2;
+				if (rs >> ch1) {
+					if (R_PREFIX != '\0') rs >> pre1;
+					rs >> e.start;
+					if (R_DILIMETER != ' ') rs >> ch2;
+					if (R_PREFIX != '\0') rs >> pre2;
+					rs >> e.end;
+					if (R_DILIMETER != ' ') rs >> ch3;
+					rs >> e.weight;
+				}
+				if (isEmptyNodeEdge(adjListGraph, e.start))
+					adjListGraph[e.start].pop_back();		// 清理占位符
+				adjListGraph[e.start].push_back(e);
+			}
+		}
+	}
+
 	// 是否为空边
 	bool isEmptyEdge(edge e) {
 		if (e.start == RESNODE && e.end == RESNODE && e.weight == RESNODE)
@@ -237,9 +291,20 @@ public:
 		return false;
 	}
 
-public:
 	set<int> nodeSet;			// 节点集合
 	map<int, vector<edge>> adjListGraph;	// 邻接表图
+private:
+	// 插入节点（有检查机制）
+	void insertNode(int node) {
+		if (node != -1) nodeSet.insert(node);
+	}
+
+	// 推入边（转换机制）
+	void pushBackEdge(edge e) {
+		if (e.start == -1) e.start = e.targetNode;
+		else if (e.end == -1) e.end = e.targetNode;
+		adjListGraph[e.start].push_back(e);
+	}
 };
 
 

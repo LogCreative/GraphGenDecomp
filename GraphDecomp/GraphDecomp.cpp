@@ -17,9 +17,7 @@ void GraphDecomp::Decomp() {
 	fstream fs(mainDir, fstream::in);
 	if (!fs) error("Cannot open main graph file!");
 	
-	Decomposer decomp(n, fs, subDir);
-	decomp.BFS();
-
+	Decomposer decomp(n, fs, subDir, dfs);
 	fs.close();
 }
 
@@ -29,9 +27,10 @@ void GraphDecomp::Optimize() {
 }
 
 bool GraphDecomp::Check() {
+	Checker orignalChecker(mainDir);
 	Checker decompChecker(subDir, DECOMPFIL);
 	Checker optChecker(subDir, OPTFIL);
-	return decompChecker == optChecker;
+	return orignalChecker == decompChecker && decompChecker == optChecker;
 }
 
 void GraphDecomp::ReachablePoints(int node) {
@@ -96,7 +95,7 @@ fileNo Processor::parseFileInt(string filePath) {
 	return parseInt(parseFileName(filePath));
 }
 
-Decomposer::Decomposer(int _n, fstream &fs, string _subDir) {
+Decomposer::Decomposer(int _n, fstream& fs, string _subDir, DecompSol sol) {
 	fileNum = 1;
 	n = _n;
 	subDir = _subDir;
@@ -105,7 +104,21 @@ Decomposer::Decomposer(int _n, fstream &fs, string _subDir) {
 	// 读取节点与边
 	nodeSet.clear();
 	adjListGraph.clear();
-	readFile(fs);
+	readRawFile(fs);
+
+	switch (sol)
+	{
+	case bfs:
+		BFS();
+		break;
+	case dfs:
+		DFS();
+		break;
+	case kl:
+		break;
+	default:
+		break;
+	}
 
 	// 将孤立节点存储到一个文件中
 
@@ -137,7 +150,7 @@ void Decomposer::writeEdgeFile() {
 		visitQueue.pop();
 
 		for (auto i = adjListGraph[f].begin(); i != adjListGraph[f].end(); ++i) {
-			if (i->start == 0) continue;			// 空边跳过
+			if (i->start == RESNODE) continue;			// 空边跳过
 			if(adjListGraph.find(i->end)!=adjListGraph.end()) 
 				visitQueue.push(i->end);			// 其指向的子节点全部进队
 			subfs << *i;							// 输出该边
@@ -193,7 +206,37 @@ void Decomposer::BFS() {
 	writeNodeFile();
 }
 
+void Decomposer::allocateNodes() {
+	// 贪心算法：小船分配
+	// 选择最大的连接节点(还是权重？)，分配最小的末枝，减少交叉量
+	// nodeSet 将会作为访问过节点的补集
+
+	map<int, int> nodesEdgeLinked;
+	for (auto ne : adjListGraph)
+		nodesEdgeLinked.insert(make_pair(ne.first, ne.second.size()));
+	
+	int edgeLeft;
+	while (nodesEdgeLinked.empty()) {
+		edgeLeft = n;
+		while (--edgeLeft) {
+			// 选择连接节点中权重最高的
+			
+		}
+	}
+
+}
+
 void Decomposer::DFS() {
+	/*
+	图分割之后生成的子图之间为什么会有重复节点？分割不就是把节点分到不同的图吗？
+	怕有些同学加了很多节点进去。如果没有引进冗余节点，就没有问题。
+	*/
+
+	// 需要扫描两遍
+	// 第一遍：分配节点
+	// 第二遍：分配边
+
+	allocateNodes();
 
 }
 
@@ -354,15 +397,22 @@ void Optimizer::Optimize() {
 
 Optimizer::~Optimizer() = default;
 
-Checker::Checker(string _subDir, string _filter) {
-	subDir = _subDir;
-	string fileExtension = ".txt";
-	vector<string> files;
-	getFiles(subDir, fileExtension, files, _filter);
-	for (auto f = files.begin(); f != files.end(); ++f) {
-		fstream cf(*f, fstream::in);
-		readFile(cf, true);
-		cf.close();
+Checker::Checker(string _subDir, string _filter){
+	if (_filter == "") {
+		fstream fs(_subDir, fstream::in);
+		readRawFile(fs);
+		fs.close();
+	}
+	else {
+		subDir = _subDir;
+		string fileExtension = ".txt";
+		vector<string> files;
+		getFiles(subDir, fileExtension, files, _filter);
+		for (auto f = files.begin(); f != files.end(); ++f) {
+			fstream cf(*f, fstream::in);
+			readFile(cf, true);
+			cf.close();
+		}
 	}
 }
 

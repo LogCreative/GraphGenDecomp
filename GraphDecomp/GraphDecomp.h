@@ -106,21 +106,26 @@ protected:
 	fileNo parseFileInt(string filePath);
 };
 
+enum DecompSol { bfs, dfs, kl };		// 分解方案类型
+
 // 分解器
 class Decomposer : Processor {
 public:
-	Decomposer(int _n, fstream &fs, string _subDir);
+	Decomposer(int _n, fstream &fs, string _subDir, DecompSol sol);
 	~Decomposer();
 
-	// 广度优先搜索作为 baseline，每个节点的边先输出，直至到达上限
+	// 分割错误，将会使用下面的方法替代
+	// 广度优先搜索作为 baseline，每个节点的边先输出，直至到达节点数上限
 	void BFS();
 
-	// 深度优先搜索提升一级，先分配节点
+	// 先分配节点，每次分配权重和最高者
 	void DFS();
 
 	// An efficient heuristic procedure for partitioning graphs
 	// https://ieeexplore.ieee.org/document/6771089/
 	void Kerninghan_Lin();
+
+	// TODO: 计算分解效果
 private:
 	queue <int> visitQueue;					// 访问队列
 
@@ -130,6 +135,13 @@ private:
 	void writeEdgeFile();
 	// 写入独立节点数据
 	void writeNodeFile();
+
+	map<int, fileNo> nodesAloc;				// 节点分配映射
+
+	void getMaxValueNode();
+	// 分配节点
+	void allocateNodes();
+
 };
 
 // 优化器
@@ -158,7 +170,7 @@ private:
 // 检查器
 class Checker : Processor {
 public:
-	Checker(string _subDir, string _filter);
+	Checker(string _subDir, string _filter = "");
 	~Checker();
 private:
 	// 比较集合
