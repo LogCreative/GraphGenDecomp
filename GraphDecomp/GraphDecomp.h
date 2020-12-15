@@ -59,7 +59,7 @@ public:
 	- 多个子图文件中分别载入程序后，不存在重复的节点
 	- 每个子图可以最多增加一个虚节点（如子图的文件名），代表外界（即其他子图）对该子图的引用
 	*/
-	void Optimize();
+	double Optimize();
 	// - 设计一个算法，将多个子图合并及删除虚节点后，检查与原图A一致。输出分割边的权重和。
 	// - 该问与上一问合并
 	bool Check();
@@ -125,7 +125,6 @@ public:
 	// https://ieeexplore.ieee.org/document/6771089/
 	void Kerninghan_Lin();
 
-	// TODO: 计算分解效果
 private:
 	queue <int> visitQueue;					// 访问队列
 
@@ -136,11 +135,24 @@ private:
 	// 写入独立节点数据
 	void writeNodeFile();
 
-	map<int, fileNo> nodesAloc;				// 节点分配映射
+	
+	//map<int, map<int, double>> weightAdjMat;	// 权重邻接矩阵
 
-	void getMaxValueNode();
-	// 分配节点
-	void allocateNodes();
+	map<int, node> nodeMap;					// 节点映射集
+
+	int edgeLeft;							// 剩余边
+	fstream* subfs;							// 子文件
+	// 获取最大权重节点
+	int getMaxWeightNode() const;
+	// 输出节点对边
+	int putN2N(int start, int end);
+
+	// 初始化矩阵
+	void initialize();
+	// 分配
+	void allocateByWeights();
+	// 深度优先搜索单元
+	void DFSUnit(int start);
 
 };
 
@@ -152,6 +164,8 @@ public:
 
 	// 优化
 	void Optimize();
+	// 获取分割评估结果
+	double getEvaluation();
 private:
 	vector<string> txt_files;				// 存储文本名称
 	map<int, string> storedNodes;			// 已经存储的节点映射
@@ -165,6 +179,8 @@ private:
 	void optimizeUnit(string ifn, string ofn);
 	// 优化剩余边
 	void optimizeRemain();
+
+	double edgeLoss = 0;
 };
 
 // 检查器

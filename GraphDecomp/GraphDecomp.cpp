@@ -21,16 +21,18 @@ void GraphDecomp::Decomp() {
 	fs.close();
 }
 
-void GraphDecomp::Optimize() {
+double GraphDecomp::Optimize() {
 	Optimizer op(n, subDir);
 	op.Optimize();
+	return op.getEvaluation();
 }
 
 bool GraphDecomp::Check() {
 	Checker orignalChecker(mainDir);
 	Checker decompChecker(subDir, DECOMPFIL);
 	Checker optChecker(subDir, OPTFIL);
-	return orignalChecker == decompChecker && decompChecker == optChecker;
+	return orignalChecker == decompChecker && 
+		decompChecker == optChecker;
 }
 
 void GraphDecomp::ReachablePoints(int node) {
@@ -197,7 +199,7 @@ void Decomposer::BFS() {
 		if (visitQueue.empty()) { 
 			int base = maxlinked_node();
 			int maxNum = adjListGraph[base].size();
-			if (isEmptyNodeEdge(adjListGraph, base)) break;			// 孤立节点
+			if (adjListGraph[base].empty()) break; // 孤立节点
 			visitQueue.push(base);			// 基点
 		}				
 		writeEdgeFile();
@@ -206,22 +208,70 @@ void Decomposer::BFS() {
 	writeNodeFile();
 }
 
-void Decomposer::allocateNodes() {
-	// 贪心算法：小船分配
-	// 选择最大的连接节点(还是权重？)，分配最小的末枝，减少交叉量
-	// nodeSet 将会作为访问过节点的补集
-
-	map<int, int> nodesEdgeLinked;
-	for (auto ne : adjListGraph)
-		nodesEdgeLinked.insert(make_pair(ne.first, ne.second.size()));
-	
-	int edgeLeft;
-	while (nodesEdgeLinked.empty()) {
-		edgeLeft = n;
-		while (--edgeLeft) {
-			// 选择连接节点中权重最高的
-			
+void Decomposer::initialize() {
+	nodeMap.clear();
+	// 初始化邻接矩阵
+	for (auto n : adjListGraph)
+		for (auto e : n.second) {
+			if (nodeMap.find(n.first) == nodeMap.end()) 
+				nodeMap[n.first] = node(n.first);
+			if(nodeMap[n.first].weightAdjCol.find(e.end)== nodeMap[n.first].weightAdjCol.end())
+				nodeMap[n.first].weightAdjCol[e.end] = e.weight;
+			else nodeMap[n.first].weightAdjCol[e.end] += e.weight;
 		}
+	// 计算总权重
+	for (auto i = nodeMap.begin(); i != nodeMap.end(); ++i)
+		i->second.calcTotalWeight();
+}
+
+int Decomposer::getMaxWeightNode() const {
+	int maxNode = RESNODE;
+	double maxWeight = RESNODE;
+	for (auto n : nodeMap)
+		if (n.second.totalWeight > maxWeight) {
+			maxNode = n.second.data;
+			maxWeight = n.second.totalWeight;
+		}
+	return maxNode;
+}
+
+int Decomposer::putN2N(int start, int end) {
+	nodeMap[start].eraseConn(end);
+	vector<vector<edge>::iterator> eraseEdges;	// 迟删除
+	for (auto ie = adjListGraph[start].begin(); ie != adjListGraph[start].end(); ++ie)
+		if (ie->end == end)
+			eraseEdges.push_back(ie);
+	for (auto ie : eraseEdges) {
+		*subfs << *ie;
+		EmptyEdge(*ie);
+	}
+	return eraseEdges.size();
+}
+
+void Decomposer::DFSUnit(int start) {
+	int visiting = nodeMap[start].getMaxLinkedNode();
+	if (visiting == RESNODE) {
+		nodeMap.erase(start);
+		nodeSet.erase(start);
+		return; 
+	}
+	edgeLeft -= putN2N(start, visiting);
+	if (edgeLeft <= 0) {
+		subfs->close();
+		fileNum++;
+		edgeLeft = n;
+		subfs = new fstream(getFileString(), fstream::out);
+	}
+	DFSUnit(visiting);
+}
+
+void Decomposer::allocateByWeights() {
+	// 取最大权重和的节点
+
+ 	subfs = new fstream(getFileString(), fstream::out);
+	edgeLeft = n;
+	while (!nodeMap.empty()) {
+		DFSUnit(getMaxWeightNode());
 	}
 
 }
@@ -233,11 +283,25 @@ void Decomposer::DFS() {
 	*/
 
 	// 需要扫描两遍
-	// 第一遍：分配节点
-	// 第二遍：分配边
+	// 第一遍：计算节点
+	// 第二遍：贪心分配
 
-	allocateNodes();
+	initialize();
+	allocateByWeights();
 
+	if (nodeSet.empty()) subfs->close();		// 关文件！
+
+	for (auto i : nodeSet) {
+		*subfs << node(i);
+		if (--edgeLeft == 0) {
+			subfs->close();
+			fileNum++;
+			edgeLeft = n;
+			subfs = new fstream(getFileString(), fstream::out);
+		}
+		
+	}
+	
 }
 
 void Decomposer::Kerninghan_Lin() {
@@ -320,6 +384,9 @@ void Optimizer::optimizeUnit(string ifn, string ofn) {
 				e.targetFile = getOptFileName(eloc->second);
 				e.targetNode = eloc->first;
 			}
+			
+			if (e.start == -1 || e.end == -1)
+				edgeLoss += e.weight;
 
 			ofs << e;
 			++cnt;
@@ -377,6 +444,7 @@ void Optimizer::optimizeRemain() {
 				nofs.close();
 			}
 		}
+		edgeLoss += e.weight;
 	}
 
 }
@@ -393,6 +461,10 @@ void Optimizer::Optimize() {
 
 	optimizeRemain();
 
+}
+
+double Optimizer::getEvaluation() {
+	return edgeLoss;
 }
 
 Optimizer::~Optimizer() = default;
@@ -586,7 +658,9 @@ double Finder::findShortestPath(int start, int end) {
 			// 考虑指出边
 			auto edgeList = subGraphs[cur.first].adjListGraph[tn];
 			for (auto e = edgeList.begin(); e != edgeList.end(); ++e) {
-				if (e->start == e->end || findLoop(e->start, e->end)) 
+				if (e->start == e->end
+					|| findLoop(e->start, e->end)
+					) 
 					continue;					// 环路不是最短路径
 				int ending = e->end;
 				if (ending == -1) {

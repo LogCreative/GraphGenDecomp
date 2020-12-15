@@ -17,6 +17,7 @@
 #include <sstream>
 #include <vector>
 #include <queue>
+#include <stack>
 #include <set>
 #include <map>
 #include <io.h>
@@ -62,7 +63,7 @@ inline void keep_window_open(const string& str)
 inline void error(const string& errormessage)
 {
     cerr << errormessage << endl;
-    throw runtime_error(errormessage);
+    //throw runtime_error(errormessage);
 }
 
 //------------------------------------------------------------------------------

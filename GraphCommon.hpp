@@ -30,7 +30,8 @@ public:
 	struct node {
 		int data;							// 点的标识符
 
-		map<int, double> adjMatCol;			// 邻接矩阵列
+		map<int, double> weightAdjCol;		// 邻接矩阵的列
+		double totalWeight = 0;					// 发出边的总权重
 
 		node(): data(RESNODE) {}
 		node(int d) : data(d) {}
@@ -57,6 +58,32 @@ public:
 			return ss;
 		}
 
+		// 计算总和
+		void calcTotalWeight() {
+			totalWeight = 0;
+			for (auto n : weightAdjCol)
+				totalWeight += n.second;
+		}
+
+		// 查找最大权重连接节点
+		int getMaxLinkedNode() const {
+			int maxNode = RESNODE;
+			double maxWeight = RESNODE;
+			for(auto n : weightAdjCol)
+				if (n.second > maxWeight) {
+					maxNode = n.first;
+					maxWeight = n.second;
+				}
+			return maxNode;
+		}
+
+		// 清除连接
+		double eraseConn(int target) {
+			double weightLoss = weightAdjCol[target];
+			weightAdjCol.erase(target);
+			totalWeight -= weightLoss;
+			return weightLoss;
+		}
 
 	};
 
@@ -190,7 +217,7 @@ public:
 			if (find(rl.begin(), rl.end(), DILIMETER) == rl.end()) {
 				node rn;
 				rs >> rn;
-				adjListGraph[rn.data].push_back(edge());
+				adjListGraph.insert(make_pair(rn.data, vector<edge>({})));
 			}
 			else {
 				edge e;
@@ -255,7 +282,7 @@ public:
 				int node;
 				if ((R_PREFIX != '\0' && rs >> ch >> pre >> node) || rs >> ch >> node) {
 					if (ch == '<')
-						adjListGraph[node].push_back(edge());
+						adjListGraph.insert(make_pair(node, vector<edge>({})));
 				}
 			}
 			else {
@@ -270,8 +297,8 @@ public:
 					if (R_DILIMETER != ' ') rs >> ch3;
 					rs >> e.weight;
 				}
-				if (isEmptyNodeEdge(adjListGraph, e.start))
-					adjListGraph[e.start].pop_back();		// 清理占位符
+				//if (isEmptyNodeEdge(adjListGraph, e.start))
+					//adjListGraph[e.start].pop_back();		// 清理占位符
 				adjListGraph[e.start].push_back(e);
 			}
 		}
@@ -284,9 +311,15 @@ public:
 		return false;
 	}
 
+	void EmptyEdge(edge e) {
+		e.start = RESNODE;
+		e.end = RESNODE;
+		e.weight = RESNODE;
+	}
+
 	// 节点是否空边
 	bool isEmptyNodeEdge(map<int, vector<edge>>& adjG, int node) {
-		if (adjG[node].size() == 1 && isEmptyEdge(adjG[node][0]))
+		if (adjG[node].empty())
 			return true;
 		return false;
 	}
@@ -308,4 +341,4 @@ private:
 };
 
 
-#endif // !NODE_EDGE_GUARD
+#endif // !GRAPH_GUARD

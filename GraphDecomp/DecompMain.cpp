@@ -2,12 +2,16 @@
 
 int main(int argc, char* argv[]) {
 #ifdef _DEBUG
-	GraphDecomp gd(10, "../GraphGen/G.txt", "./subGraph/");
-	gd.Decomp();
-	gd.Optimize();
-	cout << (gd.Check() ? "true" : "false") << endl;
-	gd.ReachablePoints(83);
-	gd.ShortestPath(83, 49);
+	for (int i = 100; i < 150; i = i + 10) {
+		GraphDecomp gd(i, "../GraphGen/G.txt", "./subGraph/");
+		gd.Decomp();
+		cout << "割边权重和：" << gd.Optimize() << endl;
+		cout << (gd.Check() ? "true" : "false") << endl;
+		// 子图上的算法错误！
+		gd.ReachablePoints(10);	
+		gd.ShortestPath(10, 68);
+	}
+	
 #else
 	if (argc == 1) error("Please assgin the main graph directory and subgraph directory.");
 	string _n = argv[1];
