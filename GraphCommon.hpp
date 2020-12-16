@@ -189,7 +189,7 @@ public:
 			string rl;
 			getline(fs, rl);
 			stringstream rs(rl);
-			if (rl == "") continue;
+			if (rl == "") break;
 
 			if (find(rl.begin(), rl.end(), DILIMETER) == rl.end()) {
 				node rn;
@@ -213,7 +213,7 @@ public:
 			string rl;
 			getline(fs, rl);
 			stringstream rs(rl);
-			if (rl == "") continue;
+			if (rl == "") break;	// getline 需要使用 break 判定。
 			if (find(rl.begin(), rl.end(), DILIMETER) == rl.end()) {
 				node rn;
 				rs >> rn;
@@ -244,7 +244,7 @@ public:
 			string rl;
 			getline(fs, rl);
 			stringstream rs(rl);
-			if (rl == "") continue;
+			if (rl == "") break;
 
 			if (find(rl.begin(), rl.end(), R_DILIMETER) == rl.end()) {
 				char ch, pre;
@@ -276,7 +276,7 @@ public:
 			string rl;
 			getline(fs, rl);
 			stringstream rs(rl);
-			if (rl == "") continue;
+			if (rl == "") break;
 			if (find(rl.begin(), rl.end(), R_DILIMETER) == rl.end()) {
 				char ch, pre;
 				int node;

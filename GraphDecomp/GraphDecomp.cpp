@@ -535,25 +535,15 @@ Finder::Finder(string _subDir) {
 	getFiles(subDir, ".txt", files, SUFFIX);
 }
 
-string Finder::findStoredFile(int node) {
+void Finder::findStartStoredFile(int node) {
+	//寻找起始节点为node的图文件
 	for (auto f = files.begin(); f != files.end(); ++f) {
 		fstream ff(*f, fstream::in);
-		while (!ff.eof()) {
-			string fl;
-			ff >> fl;
-			stringstream fss(fl);
-			char ch1, ch2;
-			int start, end;
-			if (fss >> ch1 >> start >> ch2 >> end) {
-				if (start == node || end == node) {
-					ff.close();
-					return *f;
-				}
-			}
-		}
-		ff.close();
+		FileUnit fu;
+		fu.readFile(ff, true);
+		if (fu.adjListGraph.find(node) != fu.adjListGraph.end())
+			visitFileQueue.push(make_pair(parseFileInt(*f), queue<int>({ node })));
 	}
-	return "";
 }
 
 void Finder::loadSubgraph(fileNo fn) {
@@ -564,16 +554,15 @@ void Finder::loadSubgraph(fileNo fn) {
 }
 
 void Finder::searchReachableNodes(int node) {
-	string initialFile = findStoredFile(node);	// 搜索开始基点
-	if (initialFile == "") error("No such node is found!");
+	findStartStoredFile(node);	// 搜索开始为基点的文件
+	if (visitFileQueue.empty()) error("No such node is found!");
 	//reachableNodes.insert(node);				// 起始节点从一开始不是可达点
-	visitFileQueue.push(make_pair(parseFileInt(initialFile), queue<int>({ node })));
 
 	// 算法正确性？
 	// 考虑虚边 以及只能有一个虚节点的事情
 	// 虚边是关键 存储虚边
 	// 文件是一个广义节点
-	// 访问过的节点将不会被重复访问
+	// 访问过的节点将不会被重复访问!
 	// 访问过的文件的图将会被存储 不会被重新加载
 
 	while (!visitFileQueue.empty()) {
@@ -585,26 +574,33 @@ void Finder::searchReachableNodes(int node) {
 
 		queue<int> subVisitQueue = cur.second;
 		map<fileNo, queue<int>> visitFileMap;
-
+		
 		while (!subVisitQueue.empty()) {
 			int tn = subVisitQueue.front();
 			subVisitQueue.pop();
 
-			// BFS 搜索，考虑指出边
-			auto edgeList = subGraphs[cur.first].adjListGraph[tn];
-			for (auto e = edgeList.begin(); e != edgeList.end(); ++e) {
-				int ending = e->end;
-				if (ending != -1) {
-					if (reachableNodes.find(ending) == reachableNodes.end())
-						subVisitQueue.push(ending);
-					reachableNodes.insert(ending);
+			//if (subGraphs[cur.first].visitedNode.find(tn) == subGraphs[cur.first].visitedNode.end()) {
+				// BFS 搜索，考虑指出边
+				auto edgeList = subGraphs[cur.first].adjListGraph[tn];
+				for (auto e = edgeList.begin(); e != edgeList.end(); ++e) {
+					if (isEmptyEdge(*e)) continue;
+					int ending = e->end;
+					if (ending != -1) {
+						if (subGraphs[cur.first].visitedNode.find(ending) == subGraphs[cur.first].visitedNode.end()) {
+							subVisitQueue.push(ending);
+							subGraphs[cur.first].visitedNode.insert(ending);
+							reachableNodes.insert(ending);
+						}
+					}
+					else {
+						// 虚边
+						visitFileMap[parseFileInt(e->targetFile)].push(e->targetNode);
+						reachableNodes.insert(e->targetNode);
+					}
 				}
-				else {
-					// 虚边
-					visitFileMap[parseFileInt(e->targetFile)].push(e->targetNode);
-					reachableNodes.insert(e->targetNode);
-				}
-			}
+				//subGraphs[cur.first].visitedNode.insert(tn);
+			//}
+			
 		}
 
 		for (auto m = visitFileMap.begin(); m != visitFileMap.end(); ++m)
@@ -612,13 +608,51 @@ void Finder::searchReachableNodes(int node) {
 	}
 }
 
+// 爆爆爆算法
+// 更为全局的考虑
+// 变相合并？
+
+void Finder::findNodeFileNo(int node) {
+	//寻找起始节点为node的图编号
+	queue<fileNo> searchFiles;
+	for (auto s : subGraphs) {
+		if (s.second.adjListGraph.find(node) == s.second.adjListGraph.end())
+			searchFiles.push(s.first);
+	}
+	searchFileNodeQueue.push(make_pair(node, searchFiles));
+}
+
+void Finder::loadAllSubgraphs() {
+	for (auto f = files.begin(); f != files.end(); ++f) {
+		fstream ff(*f, fstream::in);
+		FileUnit fu;
+		fu.readFile(ff, true);
+		subGraphs[parseFileInt(*f)] = fu;
+	}
+}
+
+void Finder::findReachableNodes(int node) {
+	findNodeFileNo(node);
+	if(searchFileNodeQueue.empty()) error("No such node is found!");
+
+	while (!searchFileNodeQueue.empty()) {
+		auto cur = searchFileNodeQueue.front();
+		searchFileNodeQueue.pop();
+
+
+	}
+}
+
 void Finder::ReachableNodes(int node) {
 	searchReachableNodes(node);
+	// findReachableNodes(node);
 
 	// 打印可达节点
-	for (auto i = reachableNodes.begin(); i != reachableNodes.end(); ++i)
-		cout << *i << endl;
 
+	cout << "可达节点数目：" << reachableNodes.size() << endl;
+	for (auto i = reachableNodes.begin(); i != reachableNodes.end(); ++i)
+		cout << *i << ' ';
+	cout << endl;
 }
 
 bool Finder::findLoop(int cur, int target) {
@@ -630,9 +664,8 @@ bool Finder::findLoop(int cur, int target) {
 double Finder::findShortestPath(int start, int end) {
 	map<int, double> distance;
 
-	string initialFile = findStoredFile(start);	// 搜索开始基点
-	if (initialFile == "") error("No such node is found!");
-	visitFileQueue.push(make_pair(parseFileInt(initialFile), queue<int>({ start })));
+	findStartStoredFile(start);	// 搜索开始基点
+	if (visitFileQueue.empty()) error("No such node is found!");
 
 	// 分布式 SPFA 算法
 	// Shortest Path Faster Alogrithm

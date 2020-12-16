@@ -200,7 +200,8 @@ private:
 
 // 文件单元
 class FileUnit : public GraphCommon {
-
+public:
+	set<int> visitedNode;
 };
 
 // 查找器
@@ -216,12 +217,22 @@ private:
 	queue<pair<fileNo, queue<int>>> visitFileQueue;			// 文件访问队列以及需要访问的节点
 	map<int, int> prev;						// 前继节点
 	set<int> reachableNodes;				// 可达点集合
-	// 寻找存储节点的文件
-	string findStoredFile(int node);
+	// 寻找开始为节点的存储文件
+	void findStartStoredFile(int node);
 	// 加载子图
 	void loadSubgraph(fileNo fn);
 	// 搜索可达节点
 	void searchReachableNodes(int node);
+
+	// 爆爆爆算法
+	queue<pair<int, queue<fileNo>>> searchFileNodeQueue;	// 搜索队列
+	// 加载所有子图
+	void loadAllSubgraphs();
+	// 寻找起始包含节点的图文件
+	void findNodeFileNo(int node);
+	// 搜索可达节点
+	void findReachableNodes(int node);
+
 	// 寻找环路
 	bool findLoop(int cur, int target);
 	// 寻找最短路径
