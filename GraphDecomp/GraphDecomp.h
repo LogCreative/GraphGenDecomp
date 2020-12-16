@@ -54,12 +54,14 @@ public:
 		【在结果正确的前提下，计算权重之和越小，分数越高。】
 	*/
 	void Decomp();
+	// 评估
+	double Evaluate();
 	/* (2) 优化子图存储
 	上述图分割算法导致分割成的多个子图之间存在重复的节点，请设计一个方法，使
 	- 多个子图文件中分别载入程序后，不存在重复的节点
 	- 每个子图可以最多增加一个虚节点（如子图的文件名），代表外界（即其他子图）对该子图的引用
 	*/
-	double Optimize();
+	void Optimize();
 	// - 设计一个算法，将多个子图合并及删除虚节点后，检查与原图A一致。输出分割边的权重和。
 	// - 该问与上一问合并
 	bool Check();
@@ -114,11 +116,10 @@ public:
 	Decomposer(int _n, fstream &fs, string _subDir, DecompSol sol);
 	~Decomposer();
 
-	// 分割错误，将会使用下面的方法替代
-	// 广度优先搜索作为 baseline，每个节点的边先输出，直至到达节点数上限
+	// 广度分配权重和最高者
 	void BFS();
 
-	// 先分配节点，每次分配权重和最高者
+	// 深度分配权重和最高者
 	void DFS();
 
 	// An efficient heuristic procedure for partitioning graphs
@@ -127,16 +128,6 @@ public:
 
 private:
 	queue <int> visitQueue;					// 访问队列
-
-	// 寻找最大连接数节点
-	int maxlinked_node();
-	// 写入邻接边数据
-	void writeEdgeFile();
-	// 写入独立节点数据
-	void writeNodeFile();
-
-	
-	//map<int, map<int, double>> weightAdjMat;	// 权重邻接矩阵
 
 	map<int, node> nodeMap;					// 节点映射集
 
@@ -149,10 +140,23 @@ private:
 
 	// 初始化矩阵
 	void initialize();
-	// 分配
-	void allocateByWeights();
+
 	// 深度优先搜索单元
 	void DFSUnit(int start);
+
+};
+
+// 评估器
+class Evaluator : Processor {
+public:
+	Evaluator(int _n, string _subDir);
+	~Evaluator();
+
+	double Evaluate();
+private:
+	vector<string> files;
+	map<int, string> storedNodes;			// 已经存储的节点映射
+	queue<edge> pendingEdges;				// 等待存储的边队列
 
 };
 
@@ -164,23 +168,17 @@ public:
 
 	// 优化
 	void Optimize();
-	// 获取分割评估结果
-	double getEvaluation();
 private:
 	vector<string> txt_files;				// 存储文本名称
-	map<int, string> storedNodes;			// 已经存储的节点映射
-	queue<edge> pendingEdges;				// 等待存储的边队列
-	map<int, int> fileLineCnt;				// 存储文件行数
 
 	// 获取优化后对应的文件名
 	string getOptFileName(string oriPath);
 
-	// 优化单元
-	void optimizeUnit(string ifn, string ofn);
-	// 优化剩余边
-	void optimizeRemain();
+	// 分配节点存储位置
+	void allocateNodes();
+	// 分配边
+	void allocateEdges();
 
-	double edgeLoss = 0;
 };
 
 // 检查器
@@ -218,20 +216,11 @@ private:
 	map<int, int> prev;						// 前继节点
 	set<int> reachableNodes;				// 可达点集合
 	// 寻找开始为节点的存储文件
-	void findStartStoredFile(int node);
+	string findStoredFile(int node);
 	// 加载子图
 	void loadSubgraph(fileNo fn);
 	// 搜索可达节点
 	void searchReachableNodes(int node);
-
-	// 爆爆爆算法
-	queue<pair<int, queue<fileNo>>> searchFileNodeQueue;	// 搜索队列
-	// 加载所有子图
-	void loadAllSubgraphs();
-	// 寻找起始包含节点的图文件
-	void findNodeFileNo(int node);
-	// 搜索可达节点
-	void findReachableNodes(int node);
 
 	// 寻找环路
 	bool findLoop(int cur, int target);

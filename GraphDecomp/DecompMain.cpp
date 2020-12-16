@@ -5,7 +5,7 @@ int main(int argc, char* argv[]) {
 	for (int i = 10; i < 100; i = i + 10) {
 		GraphDecomp gd(i, "../GraphGen/G.txt", "./subGraph/");
 		gd.Decomp();
-		cout << "割边权重和：" << gd.Optimize() << endl;
+		cout << "割边权重总和：" << gd.Evaluate() << endl;
 		cout << (gd.Check() ? "true" : "false") << endl;
 		// 子图上的算法错误！
 		gd.ReachablePoints(20);	
