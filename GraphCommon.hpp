@@ -18,8 +18,8 @@
 					-1		对应结束节点
 */
 
-const char R_PREFIX = '\0';			// 读取时的节点前缀
-const char R_DILIMETER = ',';		// 读取时的分割符号
+const char R_PREFIX = 'P';			// 读取时的节点前缀
+const char R_DILIMETER = ' ';		// 读取时的分割符号
 const char DILIMETER = ',';			// 边的切割符号
 const int RESNODE = -2;				// 保留节点
 

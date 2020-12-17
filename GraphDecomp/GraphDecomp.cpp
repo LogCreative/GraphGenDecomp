@@ -170,10 +170,10 @@ int Decomposer::putN2N(int start, int end) {
 }
 
 void Decomposer::refreshFile() {
-	if (edgeLeft <= 0) {
+	if (nodeLeft < 0) {
 		subfs->close();
 		fileNum++;
-		edgeLeft = n;
+		nodeLeft = n;
 		subfs = new fstream(getFileString(), fstream::out);
 	}
 }
@@ -187,7 +187,7 @@ void Decomposer::outputIsoNode() {
 	// 剩余孤立节点
 	for (auto i : nodeSet) {
 		*subfs << node(i);
-		--edgeLeft;
+		--nodeLeft;
 		refreshFile();
 	}
 	
@@ -201,22 +201,25 @@ void Decomposer::BFS() {
 	initialize();
 
 	subfs = new fstream(getFileString(), fstream::out);
-	edgeLeft = n;
+	nodeLeft = n;
 	queue<int> visitQueue;
 	while (!nodeMap.empty()) {
 		visitQueue.push(getMaxWeightNode());
 		while (!visitQueue.empty()) {
 			int tn = visitQueue.front();
 			visitQueue.pop();
+			nodeLeft--;
 
 			// BFS
 			int nn;
 			while ((nn = nodeMap[tn].getMaxLinkedNode()) != RESNODE) {
-				edgeLeft -= putN2N(tn, nn);
+				putN2N(tn, nn);
+				nodeLeft--;
 				refreshFile();
 				visitQueue.push(nn);
 			}
 
+			
 			nodeMap.erase(tn);
 			nodeSet.erase(tn);
 
@@ -228,13 +231,14 @@ void Decomposer::BFS() {
 }
 
 void Decomposer::DFSUnit(int start) {
+	nodeLeft--;
 	int visiting = nodeMap[start].getMaxLinkedNode();
 	if (visiting == RESNODE) {
 		nodeMap.erase(start);
 		nodeSet.erase(start);
 		return; 
 	}
-	edgeLeft -= putN2N(start, visiting);
+	putN2N(start, visiting);
 	refreshFile();
 	DFSUnit(visiting);
 }
@@ -252,7 +256,7 @@ void Decomposer::DFS() {
 
 	// 第二遍：贪心分配
 	subfs = new fstream(getFileString(), fstream::out);
-	edgeLeft = n;
+	nodeLeft = n;
 	while (!nodeMap.empty())
 		DFSUnit(getMaxWeightNode());
 
@@ -265,6 +269,10 @@ void Decomposer::Kerninghan_Lin() {
 }
 
 Decomposer::~Decomposer() = default;
+
+// Evaluator 逻辑不同
+// 同学的:点集之间的交叉边
+// 那我可以用临界矩阵计算损失
 
 Evaluator::Evaluator(int _n, string _subDir) {
 	n = _n;

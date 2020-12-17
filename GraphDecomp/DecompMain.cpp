@@ -2,17 +2,18 @@
 
 int main(int argc, char* argv[]) {
 #ifdef _DEBUG
-	for (int i = 30; i < 110; i = i + 10) {
+	//for (int i = 30; i < 110; i = i + 10) {
+		int i = 20;
 		cout << "-------------------------" << endl;
-		GraphDecomp gd(i, "../GraphGen/1.txt", "./subGraph/");
-		gd.Decomp(dfs);			// 大部分情况下 dfs 更好
+		GraphDecomp gd(i, "../GraphGen/G.txt", "./subGraph/");
+		gd.Decomp(bfs);			// 大部分情况下 dfs 更好
 		cout << "割边权重总和：" << gd.Evaluate() << endl;
 		gd.Optimize();
 		cout << (gd.Check() ? "true" : "false") << endl;
 		// 子图上的算法错误！
 		//gd.ReachablePoints(1150);	
 		//gd.ShortestPath(20, 68);
-	}
+	//}
 	
 #else
 	if (argc == 1) error("Please assgin the main graph directory and subgraph directory.");
