@@ -157,6 +157,7 @@ public:
 	Evaluator(int _n, string _subDir);
 	~Evaluator();
 
+	// 评估
 	double Evaluate();
 private:
 	vector<string> files;
@@ -172,12 +173,13 @@ public:
 	// 优化
 	void Optimize();
 private:
-	vector<string> txt_files;				// 存储文本名称
+	vector<string> decomp_files;				// 存储文本名称
+	map<int, fileNo> storedNodes;				// 节点-文件映射
 
 	// 获取优化后对应的文件名
 	string getOptFileName(string oriPath);
 
-	// 分配节点存储位置
+	// 分配全局叶子节点存储位置
 	void allocateNodes();
 	// 分配边
 	void allocateEdges();
@@ -210,7 +212,9 @@ class Finder : Processor {
 public:
 	Finder(string _subDir);
 	~Finder();
+	// 可达节点
 	void ReachableNodes(int node);
+	// 最短路径
 	double ShortestPath(int start, int end);
 private:
 	vector<string> files;					// 文件集合

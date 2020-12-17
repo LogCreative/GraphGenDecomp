@@ -36,7 +36,7 @@ bool GraphDecomp::Check() {
 	Checker decompChecker(subDir, DECOMPFIL);
 	Checker optChecker(subDir, OPTFIL);
 	return orignalChecker == decompChecker 
-		//&& decompChecker == optChecker
+		&& decompChecker == optChecker
 		;
 }
 
@@ -179,7 +179,10 @@ void Decomposer::refreshFile() {
 }
 
 void Decomposer::outputIsoNode() {
-	if (nodeSet.empty()) subfs->close();		// 关文件！
+	subfs->close();		// 关文件！
+
+	fileNum++;
+	subfs = new fstream(getFileString(), fstream::out);
 
 	// 剩余孤立节点
 	for (auto i : nodeSet) {
@@ -187,6 +190,9 @@ void Decomposer::outputIsoNode() {
 		--edgeLeft;
 		refreshFile();
 	}
+	
+	subfs->close();
+
 }
 
 void Decomposer::BFS() {
@@ -324,7 +330,7 @@ Optimizer::Optimizer(int _n, string _subDir) {
 	SUFFIX = OPTFIL;
 
 	// 遍历文件
-	getFiles(_subDir, ".txt", txt_files, DECOMPFIL);
+	getFiles(_subDir, ".txt", decomp_files, DECOMPFIL);
 }
 
 string Optimizer::getOptFileName(string oriPath) {
@@ -332,21 +338,110 @@ string Optimizer::getOptFileName(string oriPath) {
 }
 
 void Optimizer::allocateNodes() {
+	storedNodes.clear();
+
+	map<int, fileNo> beginNodes;
+	map<int, fileNo> leafNodes;
+
+	for (auto f = decomp_files.begin(); f != decomp_files.end(); ++f) {
+		fstream fs(*f, fstream::in);
+		fileNo curFile = parseFileInt(*f);
+		
+		while (!fs.eof()) {
+			string rl;
+			getline(fs, rl);
+			if (rl == "") break;
+			stringstream rs(rl);
+			if (find(rl.begin(), rl.end(), DILIMETER) != rl.end()) {
+				edge e;
+				rs >> e;
+				if (beginNodes.find(e.start) == beginNodes.end())
+					beginNodes[e.start] = curFile; // 起点为第一次出现
+				leafNodes[e.end] = curFile;		// 后面出现的会被前面覆盖
+			}
+		}
+		
+		fs.close();
+	}
+
+	// 初始化存储器为两个集合的并集，叶子为小集
+	set<int> intersect;
+	for (auto b : beginNodes) {
+		if (leafNodes.find(b.first) != leafNodes.end())
+			intersect.insert(b.first);
+		storedNodes.insert(b);
+	}
+	for (auto l : leafNodes)
+		if (intersect.find(l.first) == intersect.end())
+			storedNodes.insert(l);
 
 }
 
 void Optimizer::allocateEdges() {
+	map<fileNo, vector<node>> isoNodes;
+	map<fileNo, vector<edge>> writingFileMap;
+	for (auto f = decomp_files.begin(); f != decomp_files.end(); ++f) {
+		fstream ifs(*f, fstream::in);
+		fileNo curFile = parseFileInt(*f);
+
+		while (!ifs.eof()) {
+			string rl;
+			getline(ifs, rl);
+			if (rl == "") break;
+			stringstream rs(rl);
+
+			if (find(rl.begin(), rl.end(), DILIMETER) == rl.end()) {
+				node n;
+				rs >> n;
+				isoNodes[curFile].push_back(n);
+			}
+			else {
+				edge e;
+				rs >> e;
+				auto sloc = storedNodes.find(e.start);
+				auto eloc = storedNodes.find(e.end);
+				auto tail = storedNodes.end();
+
+				if (sloc->second == eloc->second) 		// 实边
+					writingFileMap[sloc->second].push_back(e);
+				else {								// 虚边
+					e.targetFile = SUFFIX + to_string(eloc->second);
+					e.targetNode = e.end;
+					e.end = -1;
+					writingFileMap[sloc->second].push_back(e);
+				}
+			}
+
+		}
+		ifs.close();
+	}
+
+	// 输出边文件
+	for (auto fn : writingFileMap) {
+		fstream ofs(getFileString(fn.first), fstream::out);
+		for (auto e : fn.second)
+			ofs << e;
+		ofs.close();
+	}
+
+	// 输出独立节点
+	for (auto in : isoNodes) {
+		fstream ofs(getFileString(in.first), fstream::out);
+		for (auto n : in.second)
+			ofs << n;
+		ofs.close();
+	}
 
 }
 
 void Optimizer::Optimize() {
-	// 第一遍扫描：需要先分配全局叶子节点存储位置
+	// 第一遍扫描：需要先分配全局叶子节点、起始节点存储位置
 	// 在最后一个出现的文件中存储该节点
+	// 第一次出现起始节点的文件为存储位置
 	// 用节点-文件映射存储
 	allocateNodes();
 	
 	// 第二遍扫描：分配边，最多只有边的终节点为虚节点
-	// 第一次出现起始节点的文件为存储位置
 	// 如果分配后两点为同一个文件，为实边
 	// 否则接在对于起始节点存储文件后面
 	// 原则：起始节点不能成为虚节点
@@ -354,7 +449,6 @@ void Optimizer::Optimize() {
 
 	// 这种优化方法将可能突破原有的文件行数限制
 	// 比如星状图。（会有一定的避免。）
-
 
 }
 
@@ -411,8 +505,8 @@ bool CompareMap(const map<int, vector<GraphCommon::edge>> &map1, const map<int, 
 }
 
 bool operator==(Checker const &l, Checker const &r) {
-	if (l.nodeSet == r.nodeSet 
-		&& CompareMap(l.adjListGraph, r.adjListGraph)
+	if (l.nodeSet == r.nodeSet && 
+		CompareMap(l.adjListGraph, r.adjListGraph)
 		)
 		return true;
 	return false;
@@ -467,44 +561,7 @@ void Finder::searchReachableNodes(int node) {
 	// 访问过的节点将不会被重复访问!
 	// 访问过的文件的图将会被存储 不会被重新加载
 
-	while (!visitFileQueue.empty()) {
-		auto cur = visitFileQueue.front();
-		visitFileQueue.pop();
-
-		if (subGraphs.find(cur.first) == subGraphs.end())
-			loadSubgraph(cur.first);
-
-		queue<int> subVisitQueue = cur.second;
-		map<fileNo, queue<int>> visitFileMap;
-		
-		while (!subVisitQueue.empty()) {
-			int tn = subVisitQueue.front();
-			subVisitQueue.pop();
-
-			// BFS 搜索，考虑指出边
-			auto edgeList = subGraphs[cur.first].adjListGraph[tn];
-			for (auto e = edgeList.begin(); e != edgeList.end(); ++e) {
-				if (isEmptyEdge(*e)) continue;
-				int ending = e->end;
-				if (ending != -1) {
-					if (subGraphs[cur.first].visitedNode.find(ending) == subGraphs[cur.first].visitedNode.end()) {
-						subVisitQueue.push(ending);
-						subGraphs[cur.first].visitedNode.insert(ending);
-						reachableNodes.insert(ending);
-					}
-				}
-				else {
-					// 虚边
-					visitFileMap[parseFileInt(e->targetFile)].push(e->targetNode);
-					reachableNodes.insert(e->targetNode);
-				}
-			}
-			
-		}
-
-		for (auto m = visitFileMap.begin(); m != visitFileMap.end(); ++m)
-			visitFileQueue.push(*m);
-	}
+	// TODO
 }
 
 void Finder::ReachableNodes(int node) {

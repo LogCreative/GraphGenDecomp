@@ -131,3 +131,8 @@ int GraphGen::getRandomNode() {
 GraphGen::~GraphGen() {
 	
 }
+
+// TODO: 边生成边边生成点 可以直接只生成边
+// 随机化程度更高一些
+// 点可以直接连续生成
+// 可以参考老师的样例

@@ -18,8 +18,8 @@
 					-1		对应结束节点
 */
 
-const char R_PREFIX = 'P';			// 读取时的节点前缀
-const char R_DILIMETER = ' ';		// 读取时的分割符号
+const char R_PREFIX = '\0';			// 读取时的节点前缀
+const char R_DILIMETER = ',';		// 读取时的分割符号
 const char DILIMETER = ',';			// 边的切割符号
 const int RESNODE = -2;				// 保留节点
 
@@ -39,7 +39,7 @@ public:
 
 		// 输出函数
 		friend fstream& operator<<(fstream& fs, const node& n) {
-			fs << '<' << n.data << '>\n';
+			fs << '<' << n.data << ">\n";
 			return fs;
 		}
 
@@ -203,6 +203,8 @@ public:
 				rs >> e;
 				insertNode(e.start);
 				insertNode(e.end);
+				if (e.start == -1 || e.end == -1)
+					insertNode(e.targetNode);			// 虚节点也需要存储
 			}
 		}
 	}
@@ -214,16 +216,10 @@ public:
 			getline(fs, rl);
 			stringstream rs(rl);
 			if (rl == "") break;	// getline 需要使用 break 判定。
-			if (find(rl.begin(), rl.end(), DILIMETER) == rl.end()) {
-				node rn;
-				rs >> rn;
-				adjListGraph.insert(make_pair(rn.data, vector<edge>({})));
-			}
-			else {
+			// 空边不再注册
+			if (find(rl.begin(), rl.end(), DILIMETER) != rl.end()) {
 				edge e;
 				rs >> e;
-				//if (isEmptyEdge(adjG, e.start))
-				//	adjG[e.start].pop_back();		// 清理占位符，没有被清理
 				if (convert) pushBackEdge(e);
 				else adjListGraph[e.start].push_back(e);
 			}
@@ -277,15 +273,7 @@ public:
 			getline(fs, rl);
 			stringstream rs(rl);
 			if (rl == "") break;
-			if (find(rl.begin(), rl.end(), R_DILIMETER) == rl.end()) {
-				char ch, pre;
-				int node;
-				if ((R_PREFIX != '\0' && rs >> ch >> pre >> node) || rs >> ch >> node) {
-					if (ch == '<')
-						adjListGraph.insert(make_pair(node, vector<edge>({})));
-				}
-			}
-			else {
+			if (find(rl.begin(), rl.end(), R_DILIMETER) != rl.end()) {
 				edge e;
 				char ch1, ch2, ch3, pre1, pre2;
 				if (rs >> ch1) {
