@@ -61,18 +61,18 @@ public:
 		// 计算总和
 		void calcTotalWeight() {
 			totalWeight = 0;
-			for (auto n : weightAdjCol)
-				totalWeight += n.second;
+			for (auto n = weightAdjCol.begin(); n != weightAdjCol.end(); ++n)
+				totalWeight += n->second;
 		}
 
 		// 查找最大权重连接节点
 		int getMaxLinkedNode() const {
 			int maxNode = RESNODE;
 			double maxWeight = RESNODE;
-			for(auto n : weightAdjCol)
-				if (n.second > maxWeight) {
-					maxNode = n.first;
-					maxWeight = n.second;
+			for(auto n = weightAdjCol.begin(); n != weightAdjCol.end(); ++n)
+				if (n->second > maxWeight) {
+					maxNode = n->first;
+					maxWeight = n->second;
 				}
 			return maxNode;
 		}

@@ -13,11 +13,11 @@ void GraphDecomp::ResetSubFolder() {
 	system(command_md.c_str());
 }
 
-void GraphDecomp::Decomp() {
+void GraphDecomp::Decomp(DecompSol sol) {
 	fstream fs(mainDir, fstream::in);
 	if (!fs) error("Cannot open main graph file!");
 	
-	Decomposer decomp(n, fs, subDir, bfs);
+	Decomposer decomp(n, fs, subDir, sol);
 	fs.close();
 }
 
@@ -271,10 +271,47 @@ double Evaluator::Evaluate() {
 	// 使用原来的优化器思路
 	// 遍历文件：第一次出现节点的文件为存储文件（不论是起始还是终止节点）
 	// 存储至已经存储的节点集合中
-	// 通过优化每一个文件，确定每一条边是否跨越文件
-	// 如果是，就增加边的损失量
+	// 通过优化每一个文件，确定每一条边的节点是否之前文件中出现过
+	// 如果是，就增加边的损失量，不论之前的起点终点是否存储在同一个文件中
+	// 该定义依赖于文件存储顺序（不同顺序读取结果不同），
+	// 需要将比较根的节点存储在靠前的位置上
 
 	double edgeLoss = 0;
+
+	for (auto f = files.begin(); f != files.end(); ++f) {
+		fstream fs(*f, fstream::in);
+		fileNo curFile = parseFileInt(*f);
+		while (!fs.eof()) {
+			string rl;
+			getline(fs, rl);
+			if (rl == "") break;
+			stringstream rs(rl);
+			
+			if (find(rl.begin(), rl.end(), DILIMETER) == rl.end()) {
+				node n;
+				rs >> n;
+				if (storedNodes.find(n.data) == storedNodes.end())
+					storedNodes[n.data] = curFile;
+			}
+			else {
+				edge e;
+				rs >> e;
+				auto sloc = storedNodes.find(e.start);
+				auto eloc = storedNodes.find(e.end);
+				auto tail = storedNodes.end();
+				
+				if ((sloc != tail && sloc->second != curFile)
+					|| (eloc != tail && eloc->second != curFile))
+					edgeLoss += e.weight;
+				
+				if (sloc == tail) storedNodes[e.start] = curFile;
+				if (eloc == tail) storedNodes[e.end] = curFile;
+
+			}
+
+		}
+		fs.close();
+	}
 
 	return edgeLoss;
 }
@@ -303,19 +340,20 @@ void Optimizer::allocateEdges() {
 }
 
 void Optimizer::Optimize() {
-	// 第一次出现节点为起始节点的文件为存储文件
-	// 第一遍扫描：需要先分配节点存储位置
-	// 用文件-节点映射表存储
+	// 第一遍扫描：需要先分配全局叶子节点存储位置
+	// 在最后一个出现的文件中存储该节点
+	// 用节点-文件映射存储
 	allocateNodes();
 	
 	// 第二遍扫描：分配边，最多只有边的终节点为虚节点
+	// 第一次出现起始节点的文件为存储位置
 	// 如果分配后两点为同一个文件，为实边
 	// 否则接在对于起始节点存储文件后面
 	// 原则：起始节点不能成为虚节点
 	allocateEdges();
 
 	// 这种优化方法将可能突破原有的文件行数限制
-	// 比如星状图。
+	// 比如星状图。（会有一定的避免。）
 
 
 }

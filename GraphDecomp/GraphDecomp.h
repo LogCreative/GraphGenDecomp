@@ -39,6 +39,8 @@ const string OPTFIL = "O";
 
 typedef int fileNo;						// 文件编号
 
+enum DecompSol { bfs, dfs, kl };		// 分解方案类型
+
 class GraphDecomp : GraphCommon {
 public:
 	// 创建图分割器
@@ -53,7 +55,7 @@ public:
 	- 我们将挑选若干自动生成的图，对比大家生成的权重之和值——
 		【在结果正确的前提下，计算权重之和越小，分数越高。】
 	*/
-	void Decomp();
+	void Decomp(DecompSol sol);
 	// 评估
 	double Evaluate();
 	/* (2) 优化子图存储
@@ -108,8 +110,6 @@ protected:
 	fileNo parseFileInt(string filePath);
 };
 
-enum DecompSol { bfs, dfs, kl };		// 分解方案类型
-
 // 分解器
 class Decomposer : Processor {
 public:
@@ -160,9 +160,7 @@ public:
 	double Evaluate();
 private:
 	vector<string> files;
-	map<int, string> storedNodes;			// 已经存储的节点映射
-	queue<edge> pendingEdges;				// 等待存储的边队列
-
+	map<int, fileNo> storedNodes;			// 已经存储的节点映射
 };
 
 // 优化器
