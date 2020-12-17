@@ -35,8 +35,9 @@ bool GraphDecomp::Check() {
 	Checker orignalChecker(mainDir);
 	Checker decompChecker(subDir, DECOMPFIL);
 	Checker optChecker(subDir, OPTFIL);
-	return orignalChecker == decompChecker && 
-		decompChecker == optChecker;
+	return orignalChecker == decompChecker 
+		//&& decompChecker == optChecker
+		;
 }
 
 void GraphDecomp::ReachablePoints(int node) {
@@ -126,17 +127,6 @@ Decomposer::Decomposer(int _n, fstream& fs, string _subDir, DecompSol sol) {
 		break;
 	}
 
-	// 将孤立节点存储到一个文件中
-
-	// 可以分级，设计不同的算法，
-	// trade off：边权重少，但虚节点多；连续，但边权重多
-	// int leastGraphNum = ceil((double)nodeSet.size() / n);
-
-	// BFS();
-	// 图谱学
-
-	// Kerninghan_Lin(n);
-
 }
 
 void Decomposer::initialize() {
@@ -179,9 +169,55 @@ int Decomposer::putN2N(int start, int end) {
 	return eraseEdges.size();
 }
 
+void Decomposer::refreshFile() {
+	if (edgeLeft <= 0) {
+		subfs->close();
+		fileNum++;
+		edgeLeft = n;
+		subfs = new fstream(getFileString(), fstream::out);
+	}
+}
+
+void Decomposer::outputIsoNode() {
+	if (nodeSet.empty()) subfs->close();		// 关文件！
+
+	// 剩余孤立节点
+	for (auto i : nodeSet) {
+		*subfs << node(i);
+		--edgeLeft;
+		refreshFile();
+	}
+}
+
 void Decomposer::BFS() {
 	// 仿照DFS 重写BFS
 
+	initialize();
+
+	subfs = new fstream(getFileString(), fstream::out);
+	edgeLeft = n;
+	queue<int> visitQueue;
+	while (!nodeMap.empty()) {
+		visitQueue.push(getMaxWeightNode());
+		while (!visitQueue.empty()) {
+			int tn = visitQueue.front();
+			visitQueue.pop();
+
+			// BFS
+			int nn;
+			while ((nn = nodeMap[tn].getMaxLinkedNode()) != RESNODE) {
+				edgeLeft -= putN2N(tn, nn);
+				refreshFile();
+				visitQueue.push(nn);
+			}
+
+			nodeMap.erase(tn);
+			nodeSet.erase(tn);
+
+		}
+	}
+
+	outputIsoNode();
 
 }
 
@@ -193,12 +229,7 @@ void Decomposer::DFSUnit(int start) {
 		return; 
 	}
 	edgeLeft -= putN2N(start, visiting);
-	if (edgeLeft <= 0) {
-		subfs->close();
-		fileNum++;
-		edgeLeft = n;
-		subfs = new fstream(getFileString(), fstream::out);
-	}
+	refreshFile();
 	DFSUnit(visiting);
 }
 
@@ -219,18 +250,7 @@ void Decomposer::DFS() {
 	while (!nodeMap.empty())
 		DFSUnit(getMaxWeightNode());
 
-	if (nodeSet.empty()) subfs->close();		// 关文件！
-
-	for (auto i : nodeSet) {
-		*subfs << node(i);
-		if (--edgeLeft == 0) {
-			subfs->close();
-			fileNum++;
-			edgeLeft = n;
-			subfs = new fstream(getFileString(), fstream::out);
-		}
-		
-	}
+	outputIsoNode();
 	
 }
 
@@ -256,7 +276,7 @@ double Evaluator::Evaluate() {
 
 	double edgeLoss = 0;
 
-
+	return edgeLoss;
 }
 
 Evaluator::~Evaluator() = default;

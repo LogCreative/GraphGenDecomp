@@ -127,12 +127,14 @@ public:
 	void Kerninghan_Lin();
 
 private:
-	queue <int> visitQueue;					// 访问队列
-
 	map<int, node> nodeMap;					// 节点映射集
 
 	int edgeLeft;							// 剩余边
 	fstream* subfs;							// 子文件
+
+	// 判定是否刷新文件
+	void refreshFile();
+
 	// 获取最大权重节点
 	int getMaxWeightNode() const;
 	// 输出节点对边
@@ -143,6 +145,9 @@ private:
 
 	// 深度优先搜索单元
 	void DFSUnit(int start);
+
+	// 输出孤立节点
+	void outputIsoNode();
 
 };
 
