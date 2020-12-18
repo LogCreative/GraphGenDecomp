@@ -14,12 +14,12 @@
 		<节点编号>								节点编号
 		<起始节点,结束节点,权重>					边
 		<起始节点,结束节点,<目标图.目标节点,权重>>	虚拟边
-			-1				对应起始节点
+			-1				对应起始节点			X 不适用
 					-1		对应结束节点
 */
 
 const char R_PREFIX = 'P';			// 读取时的节点前缀
-const char R_DILIMETER = ' ';		// 读取时的分割符号
+const char R_DILIMETER = ' ';			// 读取时的分割符号
 const char DILIMETER = ',';			// 边的切割符号
 const int RESNODE = -2;				// 保留节点
 
@@ -30,14 +30,11 @@ public:
 	struct node {
 		int data;							// 点的标识符
 
-		map<int, double> weightAdjCol;		// 邻接矩阵的列
-		double totalWeight = 0;					// 发出边的总权重
-
 		node(): data(RESNODE) {}
 		node(int d) : data(d) {}
 		~node() = default;
 
-		// 输出函数
+		// 输出函数，不会含有前缀
 		friend fstream& operator<<(fstream& fs, const node& n) {
 			fs << '<' << n.data << ">\n";
 			return fs;
@@ -46,9 +43,10 @@ public:
 		// 读取节点字符串
 		friend stringstream& operator>>(stringstream& ss, node& n) {
 			node nt;
-			char ch1;
-			if (ss >> ch1 >> nt.data) {
-				if (ch1 != '<') {
+			char ch1, ch2;
+			char pre;
+			if (ss >> ch1 >> nt.data >> ch2) {
+				if (ch1 != '<' || ch2 != '>') {
 					ss.clear(fstream::failbit);
 					return ss;
 				}
@@ -56,33 +54,6 @@ public:
 			else return ss;
 			n = nt;
 			return ss;
-		}
-
-		// 计算总和
-		void calcTotalWeight() {
-			totalWeight = 0;
-			for (auto n = weightAdjCol.begin(); n != weightAdjCol.end(); ++n)
-				totalWeight += n->second;
-		}
-
-		// 查找最大权重连接节点
-		int getMaxLinkedNode() const {
-			int maxNode = RESNODE;
-			double maxWeight = RESNODE;
-			for(auto n = weightAdjCol.begin(); n != weightAdjCol.end(); ++n)
-				if (n->second > maxWeight) {
-					maxNode = n->first;
-					maxWeight = n->second;
-				}
-			return maxNode;
-		}
-
-		// 清除连接
-		double eraseConn(int target) {
-			double weightLoss = weightAdjCol[target];
-			weightAdjCol.erase(target);
-			totalWeight -= weightLoss;
-			return weightLoss;
 		}
 
 	};
@@ -181,10 +152,57 @@ public:
 			return ss;
 		}
 
+		bool isEmpty() const {
+			if (start == RESNODE && end == RESNODE && weight == RESNODE)
+				return true;
+			return false;
+		}
+
+		void makeEmpty() {
+			start = RESNODE;
+			end = RESNODE;
+			weight = RESNODE;
+			targetFile = "";
+			targetNode = RESNODE;
+		}
+
+	};
+
+	struct nodeStruct {
+		node Node;
+		map<int, vector<edge>> adjMatColEdge;	// 邻接矩阵列边映射
+		map<int, double> adjMatCol;				// 邻接矩阵列数值
+		double totalWeight = 0;					// 节点发出边总权重
+
+		nodeStruct(): Node(node()) {}
+		nodeStruct(int d) : Node(node(d)) {}
+		~nodeStruct() = default;
+
+		// 插入边
+		void inputEdge(edge e) {
+			if (e.start == Node.data) {
+				if (adjMatCol.find(e.end) == adjMatCol.end()) {
+					// 初始化
+					adjMatCol[e.end] = e.weight;
+					adjMatColEdge[e.end] = vector<edge>({ e });
+				}
+				else {
+					// 追加
+					adjMatCol[e.end] += e.weight;
+					adjMatColEdge[e.end].push_back(e);
+				}
+				totalWeight += e.weight;
+			}
+		}
+
+		// 获取连接至节点的权重
+		inline double getConnWeight(int target) {
+			return adjMatCol.find(target) == adjMatCol.end() ? 0 : adjMatCol[target];
+		}
 	};
 
 	// 读取节点
-	void readNode(fstream& fs) {
+	void readNode(fstream& fs, bool nodeOnly = false) {
 		while (!fs.eof()) {
 			string rl;
 			getline(fs, rl);
@@ -196,7 +214,7 @@ public:
 				rs >> rn;
 				insertNode(rn.data);
 			}
-			else {
+			else if (!nodeOnly) {
 				// ⚠	每个边新添加时，所涉及的两个节点未必存在于已输入的<节点编号>集合内，
 				// 一旦发现边上存在新节点，则将其加入到节点集合中。
 				edge e;
@@ -220,8 +238,7 @@ public:
 			if (find(rl.begin(), rl.end(), DILIMETER) != rl.end()) {
 				edge e;
 				rs >> e;
-				if (convert) pushBackEdge(e);
-				else adjListGraph[e.start].push_back(e);
+				pushBackEdge(e, convert);
 			}
 		}
 	}
@@ -232,6 +249,7 @@ public:
 		fs.clear(); // 如果在文件已经读取到结尾时，fstream的对象会将内部的eof state置位，这时使用 seekg() 函数不能将该状态去除，需要使用 clear() 方法。
 		fs.seekg(0, fstream::beg);	// 返回文件头
 		readEdge(fs, convert);
+		isolateNodes();
 	}
 
 	// 读取生文件，只调用一次
@@ -285,24 +303,10 @@ public:
 					if (R_DILIMETER != ' ') rs >> ch3;
 					rs >> e.weight;
 				}
-				//if (isEmptyNodeEdge(adjListGraph, e.start))
-					//adjListGraph[e.start].pop_back();		// 清理占位符
-				adjListGraph[e.start].push_back(e);
+				pushBackEdge(e, false);			// 不转换
 			}
 		}
-	}
-
-	// 是否为空边
-	bool isEmptyEdge(edge e) {
-		if (e.start == RESNODE && e.end == RESNODE && e.weight == RESNODE)
-			return true;
-		return false;
-	}
-
-	void EmptyEdge(edge e) {
-		e.start = RESNODE;
-		e.end = RESNODE;
-		e.weight = RESNODE;
+		isolateNodes();
 	}
 
 	// 节点是否空边
@@ -312,19 +316,29 @@ public:
 		return false;
 	}
 
-	set<int> nodeSet;			// 节点集合
-	map<int, vector<edge>> adjListGraph;	// 邻接表图
+	set<int> isoNodes;			// 孤立节点
+	map<int, vector<edge>> adjListGraph;	// 邻接表图，不包含孤立节点的连通部分，连通点可能为发出空边集合。
 private:
 	// 插入节点（有检查机制）
 	void insertNode(int node) {
-		if (node != -1) nodeSet.insert(node);
+		if (node != -1) isoNodes.insert(node);
 	}
 
-	// 推入边（转换机制）
-	void pushBackEdge(edge e) {
-		if (e.start == -1) e.start = e.targetNode;
-		else if (e.end == -1) e.end = e.targetNode;
+	// 推入边
+	void pushBackEdge(edge e, bool convert) {
+		if (convert) {
+			if (e.start == -1) e.start = e.targetNode;
+			else if (e.end == -1) e.end = e.targetNode;
+		}
 		adjListGraph[e.start].push_back(e);
+		if (adjListGraph.find(e.end) == adjListGraph.end())
+			adjListGraph[e.end] = vector<edge>({});		// 占位符
+	}
+
+	// 将isoNodes变为只含孤立节点的集合
+	void isolateNodes() {
+		for (auto n : adjListGraph) 
+			isoNodes.erase(n.first);
 	}
 };
 

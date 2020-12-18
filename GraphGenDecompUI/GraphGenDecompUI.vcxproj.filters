@@ -23,7 +23,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="MainWindow.cpp">
+    <ClCompile Include="Decomposer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

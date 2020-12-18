@@ -34,19 +34,22 @@
 - 如果不同的图中有相同的点，不能计算，这是不公平的。
 */
 
+
 #ifndef GRAPH_DECOMP_GUARD
 #define GRAPH_DECOMP_GURAD 1
 
 #include "../std_lib_facilities.h"
 #include "../GraphCommon.hpp"
+
 #define INF -1						// 负无穷大距离
 
-const string DECOMPFIL = "A";
-const string OPTFIL = "O";
+const string DECOMPFIL = "A";			// 分解文件前缀
+const string OPTFIL = "O";			// 优化文件前缀
 
 typedef int fileNo;						// 文件编号
+typedef GraphCommon fileUnit;			// 文件单元
 
-enum DecompSol { bfs, dfs, kl };		// 分解方案类型
+enum DecompSol { rough, ll, kl };		// 分解方案类型
 
 class GraphDecomp : GraphCommon {
 public:
@@ -88,6 +91,120 @@ private:
 	string subDir;		// 子图文件夹
 };
 
+// 文件单元
+class FileUnit : public GraphCommon {};
 
+// 处理器父类
+class Processor : public GraphCommon {
+protected:
+	int n;				// 节点限制数
+	string subDir;		// 子图路径
+	int fileNum;		// 文件编号
+	string SUFFIX;		// 文件前缀
+
+	// 得到文件名字符串
+	string getFileString(fileNo label = -1) const;
+	/// <summary>
+	/// 获取文件夹中所有文件路径
+	/// </summary>
+	/// <param name="fileFolderPath">查找路径</param>
+	/// <param name="fileExtension">文件扩展名</param>
+	/// <param name="file">文件名向量组</param>
+	/// <param name="nameFilter">名称过滤器</param>
+	/// <returns></returns>
+	int getFiles(string fileFolderPath, string fileExtension, vector<string>& file, string nameFilter);
+	// 获取文件名称
+	string parseFileName(string filePath);
+	// 获取字符串中的整数
+	int parseInt(string str);
+	// 获取文件名中的整数
+	fileNo parseFileInt(string filePath);
+	fstream* subfs;		// 子文件
+	// 刷新文件（不判定）
+	void refreshFile();
+
+};
+
+// 分解器
+class Decomposer : Processor {
+public:
+	Decomposer(int _n, fstream& fs, string _subDir, DecompSol _sol);
+	~Decomposer();
+
+	// An efficient heuristic procedure for partitioning graphs
+	// https://ieeexplore.ieee.org/document/6771089/
+	void Kerninghan_Lin();
+
+	// 输出节点分配，便于验证
+	void OuputPartitions() const;
+
+private:
+	DecompSol sol;
+
+	map<int, nodeStruct> adjMat;			// 邻接矩阵
+	queue<set<int>> partitions;				// 节点分配
+	map<int, map<int, double>> costMat;		// 损失矩阵
+
+	// 初始化邻接矩阵
+	void initialAdjMat();
+	// 初始化损失矩阵
+	void initialCostMat();
+	// 切分一个集合
+	void divide(set<int> S);
+	// 二分集合优化
+	void optimizeParts(set<int> &A, set<int> &B);
+	// 输出连通子图
+	void outputSubAdjGraphs();
+	// 分配孤立节点
+	void allocateIsoNodes();
+
+};
+
+class FileProcessor : public Processor {
+protected:
+	vector<string> files;
+	map<int, fileNo> nodeFileMap;			// 节点-文件映射
+};
+
+// 评估器
+class Evaluator : public FileProcessor {
+public:
+	Evaluator(int _n, string _subDir);
+	~Evaluator();
+
+	// 评估
+	double Evaluate();
+};
+
+// 优化器
+class Optimizer : public FileProcessor {
+public:
+	Optimizer(int _n, string _subDir);
+	~Optimizer();
+
+	// 优化
+	void Optimize();
+private:
+	// 获取节点分配位置
+	void getNodesAllocation();
+	// 分配边
+	void allocateEdges();
+
+};
+
+// 检查器
+class Checker : Processor {
+public:
+	Checker(string _subDir, string _filter = "");
+	~Checker();
+private:
+	// 比较集合
+	template<typename K>
+	friend bool operator==(const set<K>& set1, const set<K>& set2);
+	// 比较映射
+	friend bool CompareMap(const map<int, vector<edge>>& map1, const map<int, vector<edge>>& map2);
+	// 检查是否相等
+	friend bool operator==(Checker const& l, Checker const& r);
+};
 
 #endif // !GRAPH_DECOMP_GUARD

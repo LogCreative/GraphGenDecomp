@@ -145,7 +145,7 @@
     <ClInclude Include="GUI_facilities.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="MainWindow.cpp" />
+    <ClCompile Include="Decomposer.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
