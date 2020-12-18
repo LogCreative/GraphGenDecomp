@@ -3,7 +3,7 @@
 int main(int argc, char* argv[]) {
 #ifdef _DEBUG
 	//for (int i = 30; i < 110; i = i + 10) {
-		int i = 20;
+		int i = 30;
 		cout << "-------------------------" << endl;
 		GraphDecomp gd(i, "../GraphGen/G.txt", "./subGraph/");
 		gd.Decomp(bfs);			// 大部分情况下 dfs 更好

@@ -90,10 +90,11 @@ private:
 // 处理器父类
 class Processor : public GraphCommon {
 protected:
-	int n;				// 节点限制数
-	string subDir;		// 子图路径
-	int fileNum;		// 文件编号
-	string SUFFIX;		// 文件前缀
+	int n;							// 节点限制数
+	string subDir;					// 子图路径
+	int fileNum;					// 文件编号
+	string SUFFIX;					// 文件前缀
+	map<int, node> nodeMap;			// 节点映射集
 
 	// 得到文件名字符串
 	string getFileString(fileNo label = -1);
@@ -114,6 +115,11 @@ protected:
 	int parseInt(string str);
 	// 获取文件名中的整数
 	fileNo parseFileInt(string filePath);
+
+	// 初始化邻接矩阵
+	void initialize(fstream *fs = NULL);
+	// 计算节点连接边的总权重
+	void calcToTalWeight();
 };
 
 // 分解器
@@ -133,10 +139,7 @@ public:
 	void Kerninghan_Lin();
 
 private:
-	map<int, node> nodeMap;					// 节点映射集
-
-	int nodeLeft;
-	int edgeLeft;							// 剩余边
+	int nodeLeft;							// 剩余节点数
 	fstream* subfs;							// 子文件
 
 	// 判定是否刷新文件
@@ -146,9 +149,6 @@ private:
 	int getMaxWeightNode() const;
 	// 输出节点对边
 	int putN2N(int start, int end);
-
-	// 初始化矩阵
-	void initialize();
 
 	// 深度优先搜索单元
 	void DFSUnit(int start);

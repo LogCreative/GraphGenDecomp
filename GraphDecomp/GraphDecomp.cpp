@@ -102,6 +102,33 @@ fileNo Processor::parseFileInt(string filePath) {
 	return parseInt(parseFileName(filePath));
 }
 
+void Processor::initialize(fstream* fs) {
+	FileUnit fu;
+	map<int, vector<edge>>* AdjListGraph;
+
+	if (fs != NULL) {
+		fu.readEdge(*fs);
+		AdjListGraph = &fu.adjListGraph;
+	}
+	else AdjListGraph = &adjListGraph;
+
+	// 初始化邻接矩阵
+	for (auto n : *AdjListGraph)
+		for (auto e : n.second) {
+			if (nodeMap.find(n.first) == nodeMap.end())
+				nodeMap[n.first] = node(n.first);
+			if (nodeMap[n.first].weightAdjCol.find(e.end) == nodeMap[n.first].weightAdjCol.end())
+				nodeMap[n.first].weightAdjCol[e.end] = e.weight;
+			else nodeMap[n.first].weightAdjCol[e.end] += e.weight;
+		}
+}
+
+void Processor::calcToTalWeight() {
+	// 计算总权重
+	for (auto i = nodeMap.begin(); i != nodeMap.end(); ++i)
+		i->second.calcTotalWeight();
+}
+
 Decomposer::Decomposer(int _n, fstream& fs, string _subDir, DecompSol sol) {
 	fileNum = 1;
 	n = _n;
@@ -127,22 +154,6 @@ Decomposer::Decomposer(int _n, fstream& fs, string _subDir, DecompSol sol) {
 		break;
 	}
 
-}
-
-void Decomposer::initialize() {
-	nodeMap.clear();
-	// 初始化邻接矩阵
-	for (auto n : adjListGraph)
-		for (auto e : n.second) {
-			if (nodeMap.find(n.first) == nodeMap.end())
-				nodeMap[n.first] = node(n.first);
-			if (nodeMap[n.first].weightAdjCol.find(e.end) == nodeMap[n.first].weightAdjCol.end())
-				nodeMap[n.first].weightAdjCol[e.end] = e.weight;
-			else nodeMap[n.first].weightAdjCol[e.end] += e.weight;
-		}
-	// 计算总权重
-	for (auto i = nodeMap.begin(); i != nodeMap.end(); ++i)
-		i->second.calcTotalWeight();
 }
 
 int Decomposer::getMaxWeightNode() const {
@@ -199,6 +210,7 @@ void Decomposer::BFS() {
 	// 仿照DFS 重写BFS
 
 	initialize();
+	calcToTalWeight();
 
 	subfs = new fstream(getFileString(), fstream::out);
 	nodeLeft = n;
@@ -253,6 +265,7 @@ void Decomposer::DFS() {
 
 	// 第一遍：计算节点
 	initialize();
+	calcToTalWeight();
 
 	// 第二遍：贪心分配
 	subfs = new fstream(getFileString(), fstream::out);
@@ -266,6 +279,7 @@ void Decomposer::DFS() {
 
 void Decomposer::Kerninghan_Lin() {
 	// TODO
+	// 看来必须要使用该方法了
 }
 
 Decomposer::~Decomposer() = default;
@@ -282,50 +296,17 @@ Evaluator::Evaluator(int _n, string _subDir) {
 }
 
 double Evaluator::Evaluate() {
-	// 使用原来的优化器思路
-	// 遍历文件：第一次出现节点的文件为存储文件（不论是起始还是终止节点）
-	// 存储至已经存储的节点集合中
-	// 通过优化每一个文件，确定每一条边的节点是否之前文件中出现过
-	// 如果是，就增加边的损失量，不论之前的起点终点是否存储在同一个文件中
-	// 该定义依赖于文件存储顺序（不同顺序读取结果不同），
-	// 需要将比较根的节点存储在靠前的位置上
-
 	double edgeLoss = 0;
 
+	// 初始化邻接矩阵
 	for (auto f = files.begin(); f != files.end(); ++f) {
-		fstream fs(*f, fstream::in);
-		fileNo curFile = parseFileInt(*f);
-		while (!fs.eof()) {
-			string rl;
-			getline(fs, rl);
-			if (rl == "") break;
-			stringstream rs(rl);
-			
-			if (find(rl.begin(), rl.end(), DILIMETER) == rl.end()) {
-				node n;
-				rs >> n;
-				if (storedNodes.find(n.data) == storedNodes.end())
-					storedNodes[n.data] = curFile;
-			}
-			else {
-				edge e;
-				rs >> e;
-				auto sloc = storedNodes.find(e.start);
-				auto eloc = storedNodes.find(e.end);
-				auto tail = storedNodes.end();
-				
-				if ((sloc != tail && sloc->second != curFile)
-					|| (eloc != tail && eloc->second != curFile))
-					edgeLoss += e.weight;
-				
-				if (sloc == tail) storedNodes[e.start] = curFile;
-				if (eloc == tail) storedNodes[e.end] = curFile;
-
-			}
-
-		}
-		fs.close();
+		fstream subfs(*f, fstream::in);
+		initialize(&subfs);
+		subfs.close();
 	}
+	
+	// 判定节点从属边
+
 
 	return edgeLoss;
 }
