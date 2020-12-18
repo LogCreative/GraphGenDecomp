@@ -13,28 +13,36 @@ void GraphDecomp::ResetSubFolder() {
 	system(command_md.c_str());
 }
 
-void GraphDecomp::Decomp() {
+void GraphDecomp::Decomp(DecompSol sol) {
 	fstream fs(mainDir, fstream::in);
 	if (!fs) error("Cannot open main graph file!");
 	
-	Decomposer decomp(n, fs, subDir, dfs);
+	Decomposer decomp(n, fs, subDir, sol);
 	fs.close();
 }
 
-double GraphDecomp::Optimize() {
+/*
+double GraphDecomp::Evaluate() {
+	Evaluator ev(n, subDir);
+	return ev.Evaluate();
+}
+*/
+
+void GraphDecomp::Optimize() {
 	Optimizer op(n, subDir);
 	op.Optimize();
-	return op.getEvaluation();
 }
 
 bool GraphDecomp::Check() {
 	Checker orignalChecker(mainDir);
 	Checker decompChecker(subDir, DECOMPFIL);
 	Checker optChecker(subDir, OPTFIL);
-	return orignalChecker == decompChecker && 
-		decompChecker == optChecker;
+	return orignalChecker == decompChecker 
+		&& decompChecker == optChecker
+		;
 }
 
+/*
 void GraphDecomp::ReachablePoints(int node) {
 	Finder nfd(subDir);
 	nfd.ReachableNodes(node);
@@ -45,16 +53,15 @@ void GraphDecomp::ShortestPath(int start, int end) {
 	if (pfd.ShortestPath(start, end) == INF)
 		error("These two nodes are not connected!");
 }
-
+*/
 GraphDecomp::~GraphDecomp() = default;
 
-string Processor::getFileString(fileNo label) {
+string Processor::getFileString(fileNo label) const{
 	return subDir + SUFFIX + to_string(label == -1 ? fileNum : label) + ".txt";
 }
 
 int Processor::getFiles(string fileFolderPath, string fileExtension, vector<string>& file, string nameFilter)
 {
-	// 摘自 https://blog.csdn.net/u014311125/article/details/93076784
 	string fileFolder = fileFolderPath + "\\*" + fileExtension;
 	string fileName;
 	struct _finddata_t fileInfo;
@@ -97,218 +104,169 @@ fileNo Processor::parseFileInt(string filePath) {
 	return parseInt(parseFileName(filePath));
 }
 
-Decomposer::Decomposer(int _n, fstream& fs, string _subDir, DecompSol sol) {
+void Processor::refreshFile() {
+	subfs->close();
+	fileNum++;
+	subfs = new fstream(getFileString(), fstream::out);
+}
+
+Decomposer::Decomposer(int _n, fstream& fs, string _subDir, DecompSol _sol) {
 	fileNum = 1;
 	n = _n;
 	subDir = _subDir;
 	SUFFIX = DECOMPFIL;
+	sol = _sol;
 
 	// 读取节点与边
-	nodeSet.clear();
+	isoNodes.clear();
 	adjListGraph.clear();
 	readRawFile(fs);
 
+	Kerninghan_Lin();
+}
+
+void Decomposer::initialAdjMat() {
+	adjMat.clear();
+	for (auto n : adjListGraph) {
+		nodeStruct ns(n.first);
+		for (auto e : adjListGraph[n.first])
+			ns.inputEdge(e);
+		adjMat[n.first] = ns;
+	}
+}
+
+void Decomposer::initialCostMat() {
+	costMat.clear();
+	for (auto i : adjMat) 
+		for (auto j : adjMat) 
+			costMat[i.first][j.first] = 
+			costMat[j.first][i.first] = 
+				adjMat[i.first].getConnWeight(j.first)
+				+ adjMat[j.first].getConnWeight(i.first);
+}
+
+void Decomposer::divide(set<int> S) {
+	// 开始时直接按序号将连通节点分为两半
+	set<int> A, B;
+	set<int>::iterator it = S.begin();
+	for(int size = (S.size() + 1) / 2; size > 0; --size){
+		A.insert(*it);
+		++it;
+	}
+	for (; it != S.end(); ++it)
+		B.insert(*it);
+	
+	optimizeParts(A, B);
+
+	partitions.push(A);
+	partitions.push(B);
+}
+
+void Decomposer::optimizeParts(set<int> &A, set<int> &B) {
+	if (sol != rough) {
+		// 计算外内差 D
+
+	}
 	switch (sol)
 	{
-	case bfs:
-		BFS();
-		break;
-	case dfs:
-		DFS();
+	case rough:
+		return;				// 粗略分配将不会进行优化
+	case ll:
+
 		break;
 	case kl:
+		
 		break;
 	default:
 		break;
 	}
-
-	// 将孤立节点存储到一个文件中
-
-	// 可以分级，设计不同的算法，
-	// trade off：边权重少，但虚节点多；连续，但边权重多
-	// int leastGraphNum = ceil((double)nodeSet.size() / n);
-
-	// BFS();
-	// 图谱学
-
-	// Kerninghan_Lin(n);
-
-}
-
-int Decomposer::maxlinked_node() {
-	auto res = adjListGraph.begin();
-	for (auto i = adjListGraph.begin(); i != adjListGraph.end(); ++i)
-		if (i->second.size() > res->second.size())
-			res = i;
-	return res->first;
-}
-
-// 有浪费，但大图仍然需要优化
-void Decomposer::writeEdgeFile() {
-	fstream subfs(getFileString(), fstream::out);
-	int nodeLeft = n;
-	while (!visitQueue.empty()) {
-		int f = visitQueue.front();
-		visitQueue.pop();
-
-		for (auto i = adjListGraph[f].begin(); i != adjListGraph[f].end(); ++i) {
-			if (i->start == RESNODE) continue;			// 空边跳过
-			if(adjListGraph.find(i->end)!=adjListGraph.end()) 
-				visitQueue.push(i->end);			// 其指向的子节点全部进队
-			subfs << *i;							// 输出该边
-			if (--nodeLeft == 0) {
-				subfs.close();
-				++fileNum;
-				return;
-			}
-		}
-
-		// 该节点输出完毕，退出
-		adjListGraph.erase(f);
-	}
-	if (nodeLeft != 0)								// 该文件没有写满
-		++fileNum;
-}
-
-void Decomposer::writeNodeFile() {
-	int nodeLeft = 0;
-	fstream* subfs = NULL;
-	for (auto i = adjListGraph.begin(); i != adjListGraph.end(); ++i) {
-		if (nodeLeft == 0) {
-			if (subfs) subfs->close();
-			subfs = new fstream(getFileString(), fstream::out);
-			++fileNum;
-			nodeLeft = n;
-		}
-		*subfs << '<' << i->first << '>' << endl;
-		--nodeLeft;
-	}
-}
-
-void Decomposer::BFS() {
-	// 由于邻接表存储方法擅长存储的是起始点和起始边
-	// 以最大连接节点作为基点
-	while (!visitQueue.empty()) visitQueue.pop();
-	
-	// 输出一个子图所有连接边
-	// 每个文件最多存一个子图，减少连接交叉
-
-	// 0 号文件存储的是孤立节点
-
-	while (!adjListGraph.empty()) {
-		if (visitQueue.empty()) { 
-			int base = maxlinked_node();
-			int maxNum = adjListGraph[base].size();
-			if (adjListGraph[base].empty()) break; // 孤立节点
-			visitQueue.push(base);			// 基点
-		}				
-		writeEdgeFile();
-	}
-	
-	writeNodeFile();
-}
-
-void Decomposer::initialize() {
-	nodeMap.clear();
-	// 初始化邻接矩阵
-	for (auto n : adjListGraph)
-		for (auto e : n.second) {
-			if (nodeMap.find(n.first) == nodeMap.end()) 
-				nodeMap[n.first] = node(n.first);
-			if(nodeMap[n.first].weightAdjCol.find(e.end)== nodeMap[n.first].weightAdjCol.end())
-				nodeMap[n.first].weightAdjCol[e.end] = e.weight;
-			else nodeMap[n.first].weightAdjCol[e.end] += e.weight;
-		}
-	// 计算总权重
-	for (auto i = nodeMap.begin(); i != nodeMap.end(); ++i)
-		i->second.calcTotalWeight();
-}
-
-int Decomposer::getMaxWeightNode() const {
-	int maxNode = RESNODE;
-	double maxWeight = RESNODE;
-	for (auto n : nodeMap)
-		if (n.second.totalWeight > maxWeight) {
-			maxNode = n.second.data;
-			maxWeight = n.second.totalWeight;
-		}
-	return maxNode;
-}
-
-int Decomposer::putN2N(int start, int end) {
-	nodeMap[start].eraseConn(end);
-	vector<vector<edge>::iterator> eraseEdges;	// 迟删除
-	for (auto ie = adjListGraph[start].begin(); ie != adjListGraph[start].end(); ++ie)
-		if (ie->end == end)
-			eraseEdges.push_back(ie);
-	for (auto ie : eraseEdges) {
-		*subfs << *ie;
-		EmptyEdge(*ie);
-	}
-	return eraseEdges.size();
-}
-
-void Decomposer::DFSUnit(int start) {
-	int visiting = nodeMap[start].getMaxLinkedNode();
-	if (visiting == RESNODE) {
-		nodeMap.erase(start);
-		nodeSet.erase(start);
-		return; 
-	}
-	edgeLeft -= putN2N(start, visiting);
-	if (edgeLeft <= 0) {
-		subfs->close();
-		fileNum++;
-		edgeLeft = n;
-		subfs = new fstream(getFileString(), fstream::out);
-	}
-	DFSUnit(visiting);
-}
-
-void Decomposer::allocateByWeights() {
-	// 取最大权重和的节点
-
- 	subfs = new fstream(getFileString(), fstream::out);
-	edgeLeft = n;
-	while (!nodeMap.empty()) {
-		DFSUnit(getMaxWeightNode());
-	}
-
-}
-
-void Decomposer::DFS() {
-	/*
-	图分割之后生成的子图之间为什么会有重复节点？分割不就是把节点分到不同的图吗？
-	怕有些同学加了很多节点进去。如果没有引进冗余节点，就没有问题。
-	*/
-
-	// 需要扫描两遍
-	// 第一遍：计算节点
-	// 第二遍：贪心分配
-
-	initialize();
-	allocateByWeights();
-
-	if (nodeSet.empty()) subfs->close();		// 关文件！
-
-	for (auto i : nodeSet) {
-		*subfs << node(i);
-		if (--edgeLeft == 0) {
-			subfs->close();
-			fileNum++;
-			edgeLeft = n;
-			subfs = new fstream(getFileString(), fstream::out);
-		}
-		
-	}
-	
 }
 
 void Decomposer::Kerninghan_Lin() {
-	// TODO
+
+	// 初始化邻接矩阵
+	initialAdjMat();
+
+	// 初始化损失矩阵
+	initialCostMat();
+
+	// 分配连通节点
+	set<int> connNodes;
+	for (auto n : adjListGraph)
+		connNodes.insert(n.first);
+	
+	// 每一步都是局部最优
+	// 最终可能是全局最优
+	partitions.push(connNodes);
+	int m_size = connNodes.size();	// 下一步的切割大小
+	while (m_size > n) {
+		queue<set<int>> partitionSubq;
+		while (!partitions.empty()) {
+			partitionSubq.push(partitions.front());
+			partitions.pop();
+		}
+		while (!partitionSubq.empty()) {
+			set<int> partition = partitionSubq.front();
+			partitionSubq.pop();
+			divide(partition);		// 会进队另外两半
+			m_size = (partition.size() + 1) / 2;
+		}
+	}	
+
+	// 孤立节点直接最后输出，分配
+	allocateIsoNodes();
+
+	// 输出分配情况作为验证文件
+	OuputPartitions();
+
+	// 连通子图输出
+	outputSubAdjGraphs();
+}
+
+void Decomposer::OuputPartitions() const {
+	queue<set<int>> outputPartq = partitions;
+	fstream partfs(subDir + "\\partitions.txt", fstream::out);
+	while (!outputPartq.empty()) {
+		set<int> s = outputPartq.front();
+		outputPartq.pop();
+		for (auto n : s)
+			partfs << n << ' ';
+		partfs << endl;
+	}
+	partfs.close();
+}
+
+void Decomposer::outputSubAdjGraphs() {
+	while (!partitions.empty()) {
+		set<int> s = partitions.front();
+		partitions.pop();
+		fstream subfs(getFileString(), fstream::out);
+		fileNum++;
+		for (auto n : s) {
+			subfs << node(n);
+			for (auto e : adjListGraph[n])
+				subfs << e;
+		}
+		subfs.close();
+	}
+}
+
+void Decomposer::allocateIsoNodes() {
+	set<int> isoSet;
+	for (auto in : isoNodes) {
+		isoSet.insert(in);
+		if (isoSet.size() == n) {
+			partitions.push(isoSet);
+			isoSet.clear();
+		}
+	}
+	if (!isoSet.empty())
+		partitions.push(isoSet);
 }
 
 Decomposer::~Decomposer() = default;
+
+// Evaluator
 
 Optimizer::Optimizer(int _n, string _subDir) {
 	n = _n;
@@ -316,160 +274,91 @@ Optimizer::Optimizer(int _n, string _subDir) {
 	SUFFIX = OPTFIL;
 
 	// 遍历文件
-	string fileExtension = ".txt";
-	getFiles(_subDir, fileExtension, txt_files, DECOMPFIL);
+	getFiles(_subDir, ".txt", files, DECOMPFIL);
 }
 
-string Optimizer::getOptFileName(string oriPath) {
-	return SUFFIX + to_string(parseFileInt(oriPath));
+void Optimizer::getNodesAllocation() {
+	for (auto f = files.begin(); f != files.end(); ++f) {
+		fstream subfs(*f, fstream::in);
+		fileNo cur = parseFileInt(*f);
+		fileUnit fu;
+		fu.readNode(subfs, true);
+		set<int> *nodeSet = &fu.isoNodes;
+		for (auto n : *nodeSet)
+			nodeFileMap[n] = cur;
+		subfs.close();
+	}
 }
 
-void Optimizer::optimizeUnit(string ifn, string ofn) {
-	// 对照表。
-	// 出现过的就直接引用。
+void Optimizer::allocateEdges() {
+	map<fileNo, set<int>> isoNodes;
+	map<fileNo, vector<edge>> writingFileMap;
+	set<int> startNodes;
+	for (auto f = files.begin(); f != files.end(); ++f) {
+		fstream ifs(*f, fstream::in);
+		fileNo curFile = parseFileInt(*f);
 
-	fstream ifs(ifn, fstream::in);
-	fstream ofs(ofn, fstream::out);
+		while (!ifs.eof()) {
+			string rl;
+			getline(ifs, rl);
+			if (rl == "") break;
+			stringstream rs(rl);
 
-	int cnt = 0;
+			if (find(rl.begin(), rl.end(), DILIMETER) == rl.end()) {
+				node n;
+				rs >> n;
+				isoNodes[curFile].insert(n.data);
+			} else {
+				edge e;
+				rs >> e;
+				auto sloc = nodeFileMap.find(e.start);
+				auto eloc = nodeFileMap.find(e.end);
+				auto tail = nodeFileMap.end();
 
-	// 但是需要单独存储为一个文件中。
-	// 分布式节点存储。否则会在一个地方存储过多的存储过节点。
-	// 可以先分配点。孤立节点依然存于最后一批文件中。
+				isoNodes[curFile].erase(e.start);
+				// end 不擦了 可能会存在叶子节点！存在彼处
 
-	while (!ifs.eof()) {
-		string rl;
-		ifs >> rl;
-		if (rl == "") break;
-		stringstream rs(rl);
-		edge e;
-		if (find(rl.begin(), rl.end(), DILIMETER) == rl.end()) {
-			// 孤立节点的处理
-			char ch;
-			int node;
-			if (rs >> ch >> node && ch == '<') {
-				ofs << '<' << node << '>' << endl;
-				++cnt;
-				continue;
+				if (sloc->second != eloc->second) {
+					e.targetFile = SUFFIX + to_string(eloc->second);
+					e.targetNode = e.end;
+					e.end = -1;
+				} 		// 虚边
+				if (writingFileMap.find(sloc->second) == writingFileMap.end())
+					writingFileMap[sloc->second] = vector<edge>({ e });
+				else writingFileMap[sloc->second].push_back(e);
 			}
+
 		}
-		else rs >> e;			// 边的处理
-
-		//if (isEmptyEdge(e))
-		//	continue;			// 读到节点了 继续
-
-		auto sloc = storedNodes.find(e.start);
-		auto eloc = storedNodes.find(e.end);
-		auto tloc = storedNodes.end();
-
-		if ((sloc != tloc && eloc != tloc && sloc->second != ifn && eloc->second != ifn) ||
-			e.start == e.end)
-			pendingEdges.push(e);			// 之后再分配
-		else {
-
-			// 处理始点
-			if (sloc == tloc)
-				storedNodes.insert(make_pair(e.start, ifn));
-			else if (sloc->second != ifn) {
-				e.start = -1;
-				e.targetFile = getOptFileName(sloc->second);
-				e.targetNode = sloc->first;
-			}
-
-			// 处理终点
-			if (eloc == tloc)
-				storedNodes.insert(make_pair(e.end, ifn));
-			else if (eloc->second != ifn) {
-				e.end = -1;
-				e.targetFile = getOptFileName(eloc->second);
-				e.targetNode = eloc->first;
-			}
-			
-			if (e.start == -1 || e.end == -1)
-				edgeLoss += e.weight;
-
-			ofs << e;
-			++cnt;
-		}
-
+		ifs.close();
 	}
 
-	fileLineCnt[fileNum] = cnt;
-	ifs.close();
-	ofs.close();
-}
+	// 输出边文件
+	for (auto fn : writingFileMap) {
+		fstream ofs(getFileString(fn.first), fstream::out);
+		for (auto e : fn.second)
+			ofs << e;
+		ofs.close();
+	}
 
-void Optimizer::optimizeRemain() {
-	// 剩余边再分配，处理起点和终点都不在之前图的情形
-	// 需要比较复杂的分配策略（切割策略需要改进）
-
-	vector<string> opt_txt_files;
-	getFiles(subDir, ".txt", opt_txt_files, OPTFIL);
-
-	while (!pendingEdges.empty()) {
-		edge e = pendingEdges.front();
-		pendingEdges.pop();
-
-		auto sloc = storedNodes.find(e.start);
-		auto eloc = storedNodes.find(e.end);
-
-		if (sloc->second == eloc->second) {
-			int endC = parseFileInt(eloc->second);
-			fstream nofs(getFileString(endC), fstream::app);
-			nofs << e;
-			fileLineCnt[endC]++;
-			nofs.close();
-		}
-		else {
-			if (fileLineCnt[parseFileInt(storedNodes[e.start])] >= n) {
-				// 放在结束点所在文件
-				int endC = parseFileInt(eloc->second);
-				fstream nofs(getFileString(endC), fstream::app);
-				e.start = -1;
-				e.targetFile = getOptFileName(sloc->second);
-				e.targetNode = sloc->first;
-				nofs << e;
-				fileLineCnt[endC]++;
-				nofs.close();
-			}
-			else {
-				// 放在开始点所在文件
-				int startC = parseFileInt(sloc->second);
-				fstream nofs(getFileString(startC), fstream::app);
-				e.end = -1;
-				e.targetFile = getOptFileName(eloc->second);
-				e.targetNode = eloc->first;
-				nofs << e;
-				fileLineCnt[startC]++;
-				nofs.close();
-			}
-		}
-		edgeLoss += e.weight;
+	// 输出独立节点
+	for (auto in : isoNodes) {
+		fstream ofs(getFileString(in.first), fstream::app);
+		for (auto n : in.second)
+			ofs << node(n);
+		ofs.close();
 	}
 
 }
 
 void Optimizer::Optimize() {
-	fileNum = 1;
-	storedNodes.clear();
-	while (!pendingEdges.empty()) pendingEdges.pop();
-
-	for (auto i = txt_files.begin(); i != txt_files.end(); ++i) {
-		optimizeUnit(*i, getFileString());
-		++fileNum;
-	}
-
-	optimizeRemain();
-
-}
-
-double Optimizer::getEvaluation() {
-	return edgeLoss;
+	getNodesAllocation();
+	allocateEdges();
 }
 
 Optimizer::~Optimizer() = default;
 
-Checker::Checker(string _subDir, string _filter){
+
+Checker::Checker(string _subDir, string _filter) {
 	if (_filter == "") {
 		fstream fs(_subDir, fstream::in);
 		readRawFile(fs);
@@ -493,14 +382,14 @@ bool operator==(const set<K>& set1, const set<K>& set2) {
 	if (set1.size() != set2.size())
 		return false;
 
-	for (auto itl = set1.begin(), itr = set2.begin(); itl != set1.end(); ++itl, ++itr) 
-		if (*itl != *itr) 
+	for (auto itl = set1.begin(), itr = set2.begin(); itl != set1.end(); ++itl, ++itr)
+		if (*itl != *itr)
 			return false;
 
 	return true;
 }
 
-bool CompareMap(const map<int, vector<GraphCommon::edge>> &map1, const map<int, vector<GraphCommon::edge>> &map2) {
+bool CompareMap(const map<int, vector<GraphCommon::edge>>& map1, const map<int, vector<GraphCommon::edge>>& map2) {
 	if (map1.size() != map2.size())
 		return false;
 
@@ -519,9 +408,9 @@ bool CompareMap(const map<int, vector<GraphCommon::edge>> &map1, const map<int, 
 	return true;
 }
 
-bool operator==(Checker const &l, Checker const &r) {
-	if (l.nodeSet == r.nodeSet 
-		&& CompareMap(l.adjListGraph, r.adjListGraph)
+bool operator==(Checker const& l, Checker const& r) {
+	if (l.isoNodes == r.isoNodes &&
+		CompareMap(l.adjListGraph, r.adjListGraph)
 		)
 		return true;
 	return false;
@@ -529,208 +418,3 @@ bool operator==(Checker const &l, Checker const &r) {
 
 Checker::~Checker() = default;
 
-Finder::Finder(string _subDir) {
-	subDir = _subDir;
-	SUFFIX = OPTFIL;
-	getFiles(subDir, ".txt", files, SUFFIX);
-}
-
-void Finder::findStartStoredFile(int node) {
-	//寻找起始节点为node的图文件
-	for (auto f = files.begin(); f != files.end(); ++f) {
-		fstream ff(*f, fstream::in);
-		FileUnit fu;
-		fu.readFile(ff, true);
-		if (fu.adjListGraph.find(node) != fu.adjListGraph.end())
-			visitFileQueue.push(make_pair(parseFileInt(*f), queue<int>({ node })));
-	}
-}
-
-void Finder::loadSubgraph(fileNo fn) {
-	fstream rf(getFileString(fn), fstream::in);
-	FileUnit fu;
-	fu.readFile(rf);
-	subGraphs[fn] = fu;
-}
-
-void Finder::searchReachableNodes(int node) {
-	findStartStoredFile(node);	// 搜索开始为基点的文件
-	if (visitFileQueue.empty()) error("No such node is found!");
-	//reachableNodes.insert(node);				// 起始节点从一开始不是可达点
-
-	// 算法正确性？
-	// 考虑虚边 以及只能有一个虚节点的事情
-	// 虚边是关键 存储虚边
-	// 文件是一个广义节点
-	// 访问过的节点将不会被重复访问!
-	// 访问过的文件的图将会被存储 不会被重新加载
-
-	while (!visitFileQueue.empty()) {
-		auto cur = visitFileQueue.front();
-		visitFileQueue.pop();
-
-		if (subGraphs.find(cur.first) == subGraphs.end())
-			loadSubgraph(cur.first);
-
-		queue<int> subVisitQueue = cur.second;
-		map<fileNo, queue<int>> visitFileMap;
-		
-		while (!subVisitQueue.empty()) {
-			int tn = subVisitQueue.front();
-			subVisitQueue.pop();
-
-			//if (subGraphs[cur.first].visitedNode.find(tn) == subGraphs[cur.first].visitedNode.end()) {
-				// BFS 搜索，考虑指出边
-				auto edgeList = subGraphs[cur.first].adjListGraph[tn];
-				for (auto e = edgeList.begin(); e != edgeList.end(); ++e) {
-					if (isEmptyEdge(*e)) continue;
-					int ending = e->end;
-					if (ending != -1) {
-						if (subGraphs[cur.first].visitedNode.find(ending) == subGraphs[cur.first].visitedNode.end()) {
-							subVisitQueue.push(ending);
-							subGraphs[cur.first].visitedNode.insert(ending);
-							reachableNodes.insert(ending);
-						}
-					}
-					else {
-						// 虚边
-						visitFileMap[parseFileInt(e->targetFile)].push(e->targetNode);
-						reachableNodes.insert(e->targetNode);
-					}
-				}
-				//subGraphs[cur.first].visitedNode.insert(tn);
-			//}
-			
-		}
-
-		for (auto m = visitFileMap.begin(); m != visitFileMap.end(); ++m)
-			visitFileQueue.push(*m);
-	}
-}
-
-// 爆爆爆算法
-// 更为全局的考虑
-// 变相合并？
-
-void Finder::findNodeFileNo(int node) {
-	//寻找起始节点为node的图编号
-	queue<fileNo> searchFiles;
-	for (auto s : subGraphs) {
-		if (s.second.adjListGraph.find(node) == s.second.adjListGraph.end())
-			searchFiles.push(s.first);
-	}
-	searchFileNodeQueue.push(make_pair(node, searchFiles));
-}
-
-void Finder::loadAllSubgraphs() {
-	for (auto f = files.begin(); f != files.end(); ++f) {
-		fstream ff(*f, fstream::in);
-		FileUnit fu;
-		fu.readFile(ff, true);
-		subGraphs[parseFileInt(*f)] = fu;
-	}
-}
-
-void Finder::findReachableNodes(int node) {
-	findNodeFileNo(node);
-	if(searchFileNodeQueue.empty()) error("No such node is found!");
-
-	while (!searchFileNodeQueue.empty()) {
-		auto cur = searchFileNodeQueue.front();
-		searchFileNodeQueue.pop();
-
-
-	}
-}
-
-void Finder::ReachableNodes(int node) {
-	searchReachableNodes(node);
-	// findReachableNodes(node);
-
-	// 打印可达节点
-
-	cout << "可达节点数目：" << reachableNodes.size() << endl;
-	for (auto i = reachableNodes.begin(); i != reachableNodes.end(); ++i)
-		cout << *i << ' ';
-	cout << endl;
-}
-
-bool Finder::findLoop(int cur, int target) {
-	if (cur == target) return true;
-	if (prev[cur] == cur) return false;			// 追溯到起始点
-	return findLoop(prev[cur], target);
-}
-
-double Finder::findShortestPath(int start, int end) {
-	map<int, double> distance;
-
-	findStartStoredFile(start);	// 搜索开始基点
-	if (visitFileQueue.empty()) error("No such node is found!");
-
-	// 分布式 SPFA 算法
-	// Shortest Path Faster Alogrithm
-	// SPFA 在形式上和BFS非常类似，不同的是BFS中一个点出了队列就不可能重新进入队列，但是SPFA中一个点可能在出队列之后再次被放入队列，也就是一个点改进过其它的点之后，过了一段时间可能本身被改进，于是再次用来改进其它的点，这样反复迭代下去。
-
-	distance[start] = 0;
-	prev[start] = start;
-
-	while (!visitFileQueue.empty()) {
-		auto cur = visitFileQueue.front();
-		visitFileQueue.pop();
-
-		if (subGraphs.find(cur.first) == subGraphs.end())
-			loadSubgraph(cur.first);
-
-		queue<int> subVisitQueue = cur.second;
-		map<fileNo, queue<int>> visitFileMap;
-
-		while (!subVisitQueue.empty()) {
-			int tn = subVisitQueue.front();
-			subVisitQueue.pop();
-
-			// 考虑指出边
-			auto edgeList = subGraphs[cur.first].adjListGraph[tn];
-			for (auto e = edgeList.begin(); e != edgeList.end(); ++e) {
-				if (e->start == e->end
-					|| findLoop(e->start, e->end)
-					) 
-					continue;					// 环路不是最短路径
-				int ending = e->end;
-				if (ending == -1) {
-					// 虚边
-					visitFileMap[parseFileInt(e->targetFile)].push(e->targetNode);
-					ending = e->targetNode;
-				}
-				if (distance.find(ending) == distance.end() ||
-					e->weight <= distance[ending]) {
-					distance[ending] = distance[tn] + e->weight;
-					prev[ending] = tn;
-					subVisitQueue.push(ending);
-				}
-			}
-		}
-
-		for (auto m = visitFileMap.begin(); m != visitFileMap.end(); ++m)
-			visitFileQueue.push(*m);
-	}
-
-	if (distance.find(end) == distance.end())
-		return INF;
-	return distance[end];
-}
-
-void Finder::prtPath(int cur, int target, int finish) {
-	if (cur != target) prtPath(prev[cur], target, finish);
-	cout << cur << (cur == finish ? "\n" : "->");
-}
-
-double Finder::ShortestPath(int start, int end) {
-	double res = findShortestPath(start, end);
-	if (res != INF) { 
-		prtPath(end, start, end);
-		cout << "路径长度：" << res << endl; 
-	}
-	return res;
-}
-
-Finder::~Finder() = default;

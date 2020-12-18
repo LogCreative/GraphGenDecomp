@@ -16,7 +16,8 @@
 
 /* 开发记录：
 	2020 / 11 / 25 ~ 2020 / 12 / 13 第一个可用版本
-	2020 / 12 / 13 ~				改进分割算法
+	2020 / 12 / 13 ~ 2020 / 12 / 17	分割算法错误，发行终止。
+	2020 / 12 / 18 ~				重新编写
 									开发图形界面
 	2020 / 12 / 27	23:59			截止时间
 */
@@ -27,17 +28,28 @@
 （3）助教核对前期所有作业 / 成绩记录
 */
 
+/*
+- 不使用虚节点，直接分配节点：不需要考虑文件顺序对于节点位置的考虑 这才是正解
+- 如果一个节点的发出边过多，我们再考虑虚节点的问题。
+- 如果不同的图中有相同的点，不能计算，这是不公平的。
+*/
+
+
 #ifndef GRAPH_DECOMP_GUARD
 #define GRAPH_DECOMP_GURAD 1
 
 #include "../std_lib_facilities.h"
 #include "../GraphCommon.hpp"
+
 #define INF -1						// 负无穷大距离
 
-const string DECOMPFIL = "A";
-const string OPTFIL = "O";
+const string DECOMPFIL = "A";			// 分解文件前缀
+const string OPTFIL = "O";			// 优化文件前缀
 
 typedef int fileNo;						// 文件编号
+typedef GraphCommon fileUnit;			// 文件单元
+
+enum DecompSol { rough, ll, kl };		// 分解方案类型
 
 class GraphDecomp : GraphCommon {
 public:
@@ -46,20 +58,22 @@ public:
 	// 析构
 	~GraphDecomp(); 
 	/*（1）分割图文件
-	- 将上述图分为若干子图，每个子图中节点数不大于n
+	- 将上述图分为若干子图，每个子图中【节点数不大于n】
 	- A图分割后，每个子图可以用单独的文件保存
 	- 如A1,A2,A3,...
 	- 令子图之间的交互（即能够跨越子图边界的边）权重之和最小
 	- 我们将挑选若干自动生成的图，对比大家生成的权重之和值——
 		【在结果正确的前提下，计算权重之和越小，分数越高。】
 	*/
-	void Decomp();
+	void Decomp(DecompSol sol);
+	// 评估
+	double Evaluate();
 	/* (2) 优化子图存储
 	上述图分割算法导致分割成的多个子图之间存在重复的节点，请设计一个方法，使
 	- 多个子图文件中分别载入程序后，不存在重复的节点
 	- 每个子图可以最多增加一个虚节点（如子图的文件名），代表外界（即其他子图）对该子图的引用
 	*/
-	double Optimize();
+	void Optimize();
 	// - 设计一个算法，将多个子图合并及删除虚节点后，检查与原图A一致。输出分割边的权重和。
 	// - 该问与上一问合并
 	bool Check();
@@ -77,6 +91,9 @@ private:
 	string subDir;		// 子图文件夹
 };
 
+// 文件单元
+class FileUnit : public GraphCommon {};
+
 // 处理器父类
 class Processor : public GraphCommon {
 protected:
@@ -86,8 +103,7 @@ protected:
 	string SUFFIX;		// 文件前缀
 
 	// 得到文件名字符串
-	string getFileString(fileNo label = -1);
-
+	string getFileString(fileNo label = -1) const;
 	/// <summary>
 	/// 获取文件夹中所有文件路径
 	/// </summary>
@@ -97,90 +113,83 @@ protected:
 	/// <param name="nameFilter">名称过滤器</param>
 	/// <returns></returns>
 	int getFiles(string fileFolderPath, string fileExtension, vector<string>& file, string nameFilter);
-
 	// 获取文件名称
 	string parseFileName(string filePath);
 	// 获取字符串中的整数
 	int parseInt(string str);
 	// 获取文件名中的整数
 	fileNo parseFileInt(string filePath);
-};
+	fstream* subfs;		// 子文件
+	// 刷新文件（不判定）
+	void refreshFile();
 
-enum DecompSol { bfs, dfs, kl };		// 分解方案类型
+};
 
 // 分解器
 class Decomposer : Processor {
 public:
-	Decomposer(int _n, fstream &fs, string _subDir, DecompSol sol);
+	Decomposer(int _n, fstream& fs, string _subDir, DecompSol _sol);
 	~Decomposer();
-
-	// 分割错误，将会使用下面的方法替代
-	// 广度优先搜索作为 baseline，每个节点的边先输出，直至到达节点数上限
-	void BFS();
-
-	// 先分配节点，每次分配权重和最高者
-	void DFS();
 
 	// An efficient heuristic procedure for partitioning graphs
 	// https://ieeexplore.ieee.org/document/6771089/
 	void Kerninghan_Lin();
 
+	// 输出节点分配，便于验证
+	void OuputPartitions() const;
+
 private:
-	queue <int> visitQueue;					// 访问队列
+	DecompSol sol;
 
-	// 寻找最大连接数节点
-	int maxlinked_node();
-	// 写入邻接边数据
-	void writeEdgeFile();
-	// 写入独立节点数据
-	void writeNodeFile();
+	map<int, nodeStruct> adjMat;			// 邻接矩阵
+	queue<set<int>> partitions;				// 节点分配
+	map<int, map<int, double>> costMat;		// 损失矩阵
 
-	
-	//map<int, map<int, double>> weightAdjMat;	// 权重邻接矩阵
-
-	map<int, node> nodeMap;					// 节点映射集
-
-	int edgeLeft;							// 剩余边
-	fstream* subfs;							// 子文件
-	// 获取最大权重节点
-	int getMaxWeightNode() const;
-	// 输出节点对边
-	int putN2N(int start, int end);
-
-	// 初始化矩阵
-	void initialize();
-	// 分配
-	void allocateByWeights();
-	// 深度优先搜索单元
-	void DFSUnit(int start);
+	// 初始化邻接矩阵
+	void initialAdjMat();
+	// 初始化损失矩阵
+	void initialCostMat();
+	// 切分一个集合
+	void divide(set<int> S);
+	// 二分集合优化
+	void optimizeParts(set<int> &A, set<int> &B);
+	// 输出连通子图
+	void outputSubAdjGraphs();
+	// 分配孤立节点
+	void allocateIsoNodes();
 
 };
 
+class FileProcessor : public Processor {
+protected:
+	vector<string> files;
+	map<int, fileNo> nodeFileMap;			// 节点-文件映射
+};
+
+// 评估器
+class Evaluator : public FileProcessor {
+public:
+	Evaluator(int _n, string _subDir);
+	~Evaluator();
+
+	// 评估
+	double Evaluate();
+};
+
 // 优化器
-class Optimizer : Processor {
+class Optimizer : public FileProcessor {
 public:
 	Optimizer(int _n, string _subDir);
 	~Optimizer();
 
 	// 优化
 	void Optimize();
-	// 获取分割评估结果
-	double getEvaluation();
 private:
-	vector<string> txt_files;				// 存储文本名称
-	map<int, string> storedNodes;			// 已经存储的节点映射
-	queue<edge> pendingEdges;				// 等待存储的边队列
-	map<int, int> fileLineCnt;				// 存储文件行数
+	// 获取节点分配位置
+	void getNodesAllocation();
+	// 分配边
+	void allocateEdges();
 
-	// 获取优化后对应的文件名
-	string getOptFileName(string oriPath);
-
-	// 优化单元
-	void optimizeUnit(string ifn, string ofn);
-	// 优化剩余边
-	void optimizeRemain();
-
-	double edgeLoss = 0;
 };
 
 // 检查器
@@ -193,52 +202,9 @@ private:
 	template<typename K>
 	friend bool operator==(const set<K>& set1, const set<K>& set2);
 	// 比较映射
-	friend bool CompareMap(const map<int, vector<edge>> &map1, const map<int, vector<edge>> &map2);
+	friend bool CompareMap(const map<int, vector<edge>>& map1, const map<int, vector<edge>>& map2);
 	// 检查是否相等
-	friend bool operator==(Checker const &l, Checker const &r);
-};
-
-// 文件单元
-class FileUnit : public GraphCommon {
-public:
-	set<int> visitedNode;
-};
-
-// 查找器
-class Finder : Processor {
-public:
-	Finder(string _subDir);
-	~Finder();
-	void ReachableNodes(int node);
-	double ShortestPath(int start, int end);
-private:
-	vector<string> files;					// 文件集合
-	map < fileNo, FileUnit > subGraphs;		// 子图
-	queue<pair<fileNo, queue<int>>> visitFileQueue;			// 文件访问队列以及需要访问的节点
-	map<int, int> prev;						// 前继节点
-	set<int> reachableNodes;				// 可达点集合
-	// 寻找开始为节点的存储文件
-	void findStartStoredFile(int node);
-	// 加载子图
-	void loadSubgraph(fileNo fn);
-	// 搜索可达节点
-	void searchReachableNodes(int node);
-
-	// 爆爆爆算法
-	queue<pair<int, queue<fileNo>>> searchFileNodeQueue;	// 搜索队列
-	// 加载所有子图
-	void loadAllSubgraphs();
-	// 寻找起始包含节点的图文件
-	void findNodeFileNo(int node);
-	// 搜索可达节点
-	void findReachableNodes(int node);
-
-	// 寻找环路
-	bool findLoop(int cur, int target);
-	// 寻找最短路径
-	double findShortestPath(int start, int end);
-	// 打印路径
-	void prtPath(int cur, int target, int finish);
+	friend bool operator==(Checker const& l, Checker const& r);
 };
 
 #endif // !GRAPH_DECOMP_GUARD
