@@ -2,8 +2,8 @@
 
 int main(int argc, char* argv[]) {
 #ifdef _DEBUG
-	//for (int i = 30; i < 110; i = i + 10) {
-		int i = 10;
+	for (int i = 30; i < 110; i = i + 10) {
+		//int i = 10;
 		cout << "-------------------------" << endl;
 		GraphDecomp gd(i, "../GraphGen/G.txt", "./subGraph/");
 		gd.Decomp(kl);			// 大部分情况下 dfs 更好
@@ -11,9 +11,9 @@ int main(int argc, char* argv[]) {
 		gd.Optimize();
 		cout << (gd.Check() ? "true" : "false") << endl;
 		// 子图上的算法错误！
-		//gd.ReachablePoints(1150);	
+		gd.ReachablePoints(1);	
 		//gd.ShortestPath(20, 68);
-	//}
+	}
 	
 #else
 	if (argc == 1) error("Please assgin the main graph directory and subgraph directory.");

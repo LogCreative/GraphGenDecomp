@@ -42,12 +42,11 @@ bool GraphDecomp::Check() {
 		;
 }
 
-/*
 void GraphDecomp::ReachablePoints(int node) {
 	Finder nfd(subDir);
 	nfd.ReachableNodes(node);
 }
-
+/*
 void GraphDecomp::ShortestPath(int start, int end) {
 	Finder pfd(subDir);
 	if (pfd.ShortestPath(start, end) == INF)
@@ -281,7 +280,7 @@ void Optimizer::getNodesAllocation() {
 	for (auto f = files.begin(); f != files.end(); ++f) {
 		fstream subfs(*f, fstream::in);
 		fileNo cur = parseFileInt(*f);
-		fileUnit fu;
+		FileUnit fu;
 		fu.readNode(subfs, true);
 		set<int> *nodeSet = &fu.isoNodes;
 		for (auto n : *nodeSet)
@@ -418,3 +417,102 @@ bool operator==(Checker const& l, Checker const& r) {
 
 Checker::~Checker() = default;
 
+Finder::Finder(string _subDir) {
+	subDir = _subDir;
+	SUFFIX = OPTFIL;
+	getFiles(subDir, ".txt", files, SUFFIX);
+}
+
+fileNo Finder::findStoredFile(int node) {
+	for (auto f = files.begin(); f != files.end(); ++f) {
+		fileNo cur = parseFileInt(*f);
+		if (subGraphs.find(cur) == subGraphs.end())
+			loadSubgraph(cur);			// 子图尚未被加载
+		
+		for (auto n : subGraphs[cur].adjListGraph)
+			if (n.first == node)
+				return cur;				// 正数代表连通边存储
+		for (auto n : subGraphs[cur].isoNodes)
+			if (n == node)
+				return -cur;			// 负数代表是孤立节点存储
+	}
+	return 0;							// 没有被存储
+}
+
+void Finder::loadSubgraph(fileNo fn) {
+	fstream rf(getFileString(fn), fstream::in);
+	FileUnit fu;
+	fu.readFile(rf, false);				// 保留虚边
+	subGraphs[fn] = fu;
+}
+
+void Finder::prtReachableNodes() const {
+	// 打印可达节点
+	cout << "可达节点数目：" << reachableNodes.size() << endl;
+	for (auto i = reachableNodes.begin(); i != reachableNodes.end(); ++i)
+		cout << *i << ' ';
+	cout << endl;
+}
+
+void Finder::ReachableNodes(int beg) {
+	// BFS 寻找可达节点
+	queue<pair<fileNo, set<int>>> visitFileQ;		// 文件访问队列
+	fileNo init = findStoredFile(beg);
+	if (init <= 0) {
+		if (init == 0)								// 没有被存储 
+			error("No such node is stored!");
+		prtReachableNodes();
+		return;										// 或者是孤立节点
+	}
+	visitFileQ.push(make_pair(init, set<int>({ beg })));
+	bool flag = true;								// 自身开始不作为可达节点
+
+	while (!visitFileQ.empty()) {
+		auto fq = visitFileQ.front();
+		visitFileQ.pop();
+
+		if (subGraphs.find(fq.first) == subGraphs.end())
+			loadSubgraph(fq.first);
+		
+		map<fileNo, set<int>> visitFileMap;
+
+		queue<int> subVisitq;
+		for (auto n : fq.second)
+			subVisitq.push(n);
+
+		while (!subVisitq.empty()) {
+			int tn = subVisitq.front();
+			subVisitq.pop();
+			if (flag) flag = false;
+			else reachableNodes.insert(tn);
+
+			for (auto e : subGraphs[fq.first].adjListGraph[tn]) {
+				if (e.end != -1) { // 实边
+					if (subGraphs[fq.first].nodeVisited.find(tn) == subGraphs[fq.first].nodeVisited.end())
+						subVisitq.push(e.end);
+				}
+				else { // 虚边
+					fileNo tarNo = parseInt(e.targetFile);
+					if (subGraphs.find(tarNo) == subGraphs.end()||
+						(subGraphs[tarNo].nodeVisited.find(e.targetNode) == subGraphs[tarNo].nodeVisited.end()))
+						visitFileMap[tarNo].insert(e.targetNode);
+				}
+			}
+
+			// 该节点访问完毕
+			subGraphs[fq.first].nodeVisited.insert(tn);
+		}
+
+		// 该轮文件访问完毕
+		for (auto m : visitFileMap)
+			visitFileQ.push(m);
+	}
+
+	prtReachableNodes();
+}
+
+double Finder::ShortestPath(int start, int end) {
+	return 0;
+}
+
+Finder::~Finder() = default;

@@ -41,13 +41,17 @@
 #include "../std_lib_facilities.h"
 #include "../GraphCommon.hpp"
 
-#define INF -1						// 负无穷大距离
+#define INF -1							// 负无穷大距离
 
-const string DECOMPFIL = "A";			// 分解文件前缀
-const string OPTFIL = "O";			// 优化文件前缀
+const string DECOMPFIL	= "A";			// 分解文件前缀
+const string OPTFIL		= "O";			// 优化文件前缀
 
 typedef int fileNo;						// 文件编号
-typedef GraphCommon fileUnit;			// 文件单元
+
+class FileUnit : public GraphCommon {	// 文件单元
+public:
+	set<int> nodeVisited;				// 访问过的节点集
+};
 
 enum DecompSol { rough, ll, kl };		// 分解方案类型
 
@@ -90,9 +94,6 @@ private:
 	string mainDir;		// 主图文件
 	string subDir;		// 子图文件夹
 };
-
-// 文件单元
-class FileUnit : public GraphCommon {};
 
 // 处理器父类
 class Processor : public GraphCommon {
@@ -206,5 +207,37 @@ private:
 	// 检查是否相等
 	friend bool operator==(Checker const& l, Checker const& r);
 };
+
+// 查找器
+class Finder : public FileProcessor {
+public:
+	Finder(string _subDir);
+	~Finder();
+	// 可达节点
+	void ReachableNodes(int node);
+	// 最短路径
+	double ShortestPath(int start, int end);
+private:
+	map < fileNo, FileUnit > subGraphs;		// 子图
+	//queue<pair<fileNo, queue<int>>> visitFileQueue;			// 文件访问队列以及需要访问的节点
+	map<int, int> prev;						// 前继节点
+	set<int> reachableNodes;				// 可达点集合
+	// 寻找开始为节点的存储文件
+	fileNo findStoredFile(int beg);
+	// 加载子图
+	void loadSubgraph(fileNo fn);
+	// 打印可达节点
+	void prtReachableNodes() const;
+	// 搜索可达节点
+	void searchReachableNodes(int node);
+
+	// 寻找环路
+	bool findLoop(int cur, int target);
+	// 寻找最短路径
+	double findShortestPath(int start, int end);
+	// 打印路径
+	void prtPath(int cur, int target, int finish);
+};
+
 
 #endif // !GRAPH_DECOMP_GUARD
