@@ -163,7 +163,7 @@ private:
 	// 计算内外差列
 	void calcDiffMat(set<int>& A, set<int>& B);
 	// 获取集合范围内的最大D对应的节点
-	pair<int,double> getMaxDinSet(set<int>& S);
+	int getMaxDinSet(set<int>& S);
 
 	// 切分一个集合
 	void divide(set<int> S);

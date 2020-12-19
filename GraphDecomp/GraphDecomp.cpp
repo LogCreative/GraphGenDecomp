@@ -80,6 +80,7 @@ int Processor::getFiles(string fileFolderPath, string fileExtension, vector<stri
 	} while (_findnext(findResult, &fileInfo) == 0);
 
 	_findclose(findResult);
+	return 0;
 }
 
 string Processor::parseFileName(string filePath) {
@@ -190,7 +191,7 @@ void Decomposer::calcDiffMat(set<int>& A, set<int>& B) {
 	}
 }
 
-pair<int, double> Decomposer::getMaxDinSet(set<int>& S) {
+int Decomposer::getMaxDinSet(set<int>& S) {
 	int zmax = *S.begin();
 	double Dzmax = diffCol[zmax];
 	auto z = S.begin();
@@ -200,43 +201,55 @@ pair<int, double> Decomposer::getMaxDinSet(set<int>& S) {
 			zmax = *z;
 			Dzmax = diffCol[*z];
 		}
-	return make_pair(zmax, Dzmax);
+	return zmax;
 }
 
 void Decomposer::optimizeParts(set<int>& A, set<int>& B) {
-	if (sol == ll) {
-		calcDiffMat(A, B);
-		set<int> Ap = A;
-		set<int> Bp = B;
-		vector<int> ak;
-		vector<int> bk;
-		vector<double> gain;
-		int size = B.size();
-		while (--size) {
-			pair<int, double> amax = getMaxDinSet(Ap);
-			pair<int, double> bmax = getMaxDinSet(Bp);
-			ak.push_back(amax.first);
-			bk.push_back(bmax.first);
-			Ap.erase(amax.first);
-			Ap.insert(bmax.first);
-			Bp.erase(bmax.first);
-			Bp.insert(amax.first);
-			gain.push_back(amax.second + bmax.second - 2 * getCostValue(amax.first, bmax.first));
-			calcDiffMat(Ap, Bp);
-		}
-		int k = 0;
-		double gainmax = gain[0];
-		for (int i = 1; i < gain.size(); ++i)
-			if (gain[i] > gainmax) {
-				k = i;
-				gainmax = gain[i];
+	if (sol != rough) {
+		double G = INF;
+		do {
+			calcDiffMat(A, B);
+			set<int> Ap = A;
+			set<int> Bp = B;
+			vector<int> ak;
+			vector<int> bk;
+			vector<double> gain;
+			int size = B.size();
+			while (--size) {
+				int amax;
+				int bmax;
+				double gainLocal;
+				if (sol == ll) {
+					amax = getMaxDinSet(Ap);
+					bmax = getMaxDinSet(Bp);
+					gainLocal = diffCol[amax] + diffCol[bmax] - 2 * getCostValue(amax, bmax);
+				}
+				ak.push_back(amax);
+				bk.push_back(bmax);
+				Ap.erase(amax);
+				Ap.insert(bmax);
+				Bp.erase(bmax);
+				Bp.insert(amax);
+				gain.push_back(gainLocal);
+				calcDiffMat(Ap, Bp);
 			}
-		for (int l = 0; l <= k; ++l) {
-			A.erase(ak[l]);
-			B.insert(ak[l]);
-			B.erase(bk[l]);
-			A.insert(bk[l]);
-		}
+			int k = 0;
+			double G = gain[0];
+			double Gtmp = gain[0];
+			for (int i = 1; i < gain.size(); ++i) {
+				if (Gtmp + gain[i] > G) {
+					k = i;
+					G = Gtmp + gain[i];
+				}
+				Gtmp += gain[i];
+			}
+			for (int l = 0; l <= k; ++l) {
+				A.erase(ak[l]);
+				B.insert(ak[l]);
+				B.erase(bk[l]);
+				A.insert(bk[l]);
+			}
+		} while (G > 0);
 	}
 }
 
