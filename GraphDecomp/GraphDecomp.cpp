@@ -484,7 +484,6 @@ void Finder::ReachableNodes(int beg) {
 			else reachableNodes.insert(tn);
 
 			for (auto e : subGraphs[fq.first].adjListGraph[tn]) {
-				int toNode = RESNODE;
 				fileNo tarNo = parseInt(e.targetFile);
 				if (e.end != -1) { // 实边
 					if (subGraphs[fq.first].nodeVisited.find(e.end) == subGraphs[fq.first].nodeVisited.end())
@@ -527,7 +526,56 @@ double Finder::ShortestPath(int start, int end) {
 	distance[start] = 0;
 	prev[start] = start;
 
-	// 使用 SPFA 算法。
+	// 分布式 SPFA 算法
+	// Shortest Path Faster Alogrithm
+	// SPFA 在形式上和BFS非常类似，不同的是BFS中一个点出了队列就不可能重新进入队列，但是SPFA中一个点可能在出队列之后再次被放入队列，也就是一个点改进过其它的点之后，过了一段时间可能本身被改进，于是再次用来改进其它的点，这样反复迭代下去。
+
+	queue<pair<fileNo, queue<int>>> visitFileQ;		// 文件访问队列
+	fileNo init = findStoredFile(start);
+	if (init <= 0) {
+		if (init == 0)								// 没有被存储 
+			error("Node " + to_string(start) + " is not stored!");
+		return INF;									// 或者是孤立节点
+	}
+	if (findStoredFile(end) == 0)
+		error("Node " + to_string(end) + " is not stored!"); // 没有被存储 
+
+	visitFileQ.push(make_pair(init, queue<int>({ start })));
+
+	while (!visitFileQ.empty()) {
+		auto fq = visitFileQ.front();
+		visitFileQ.pop();
+
+		if (subGraphs.find(fq.first) == subGraphs.end())
+			loadSubgraph(fq.first);
+
+		map<fileNo, queue<int>> visitFileMap;
+
+		queue<int> subVisitq = fq.second;
+
+		while (!subVisitq.empty()) {
+			int tn = subVisitq.front();
+			subVisitq.pop();
+
+			for (auto e : subGraphs[fq.first].adjListGraph[tn]) {
+				int toNode = RESNODE;
+				fileNo tarNo = parseInt(e.targetFile);
+				toNode = e.end == -1 ? e.targetNode : e.end;
+				if (toNode != RESNODE &&
+					(distance.find(toNode) == distance.end() ||
+						distance[tn] + e.weight < distance[toNode])) {
+					distance[toNode] = distance[tn] + e.weight;
+					prev[toNode] = tn;
+					if (e.end != -1) subVisitq.push(e.end);
+					else visitFileMap[tarNo].push(e.targetNode);
+				}
+			}
+		}
+
+		// 该轮文件访问完毕
+		for (auto m : visitFileMap)
+			visitFileQ.push(m);
+	}
 
 	if (distance.find(end) == distance.end()) {
 		error("Two nodes are not connected!");

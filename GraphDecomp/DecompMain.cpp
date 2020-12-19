@@ -10,9 +10,9 @@ int main(int argc, char* argv[]) {
 		//cout << "割边权重总和：" << gd.Evaluate() << endl;
 		gd.Optimize();
 		cout << (gd.Check() ? "true" : "false") << endl;
-		gd.ReachablePoints(1);	
+		gd.ReachablePoints(2);	
 		// 子图上的算法错误！
-		cout << "路径长度：" << gd.ShortestPath(1, 99) << endl; 
+		cout << "路径长度：" << gd.ShortestPath(2, 99) << endl; 
 	}
 	
 #else
