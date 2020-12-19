@@ -46,13 +46,12 @@ void GraphDecomp::ReachablePoints(int node) {
 	Finder nfd(subDir);
 	nfd.ReachableNodes(node);
 }
-/*
-void GraphDecomp::ShortestPath(int start, int end) {
+
+double GraphDecomp::ShortestPath(int start, int end) {
 	Finder pfd(subDir);
-	if (pfd.ShortestPath(start, end) == INF)
-		error("These two nodes are not connected!");
+	return pfd.ShortestPath(start, end);
 }
-*/
+
 GraphDecomp::~GraphDecomp() = default;
 
 string Processor::getFileString(fileNo label) const{
@@ -454,9 +453,9 @@ void Finder::prtReachableNodes() const {
 	cout << endl;
 }
 
-void Finder::ReachableNodes(int beg) {
+void Finder::reachRefresh(int beg, bool findPath) {
 	// BFS 寻找可达节点
-	queue<pair<fileNo, set<int>>> visitFileQ;		// 文件访问队列
+	queue<pair<fileNo, queue<int>>> visitFileQ;		// 文件访问队列
 	fileNo init = findStoredFile(beg);
 	if (init <= 0) {
 		if (init == 0)								// 没有被存储 
@@ -464,7 +463,7 @@ void Finder::ReachableNodes(int beg) {
 		prtReachableNodes();
 		return;										// 或者是孤立节点
 	}
-	visitFileQ.push(make_pair(init, set<int>({ beg })));
+	visitFileQ.push(make_pair(init, queue<int>({ beg })));
 	bool flag = true;								// 自身开始不作为可达节点
 
 	while (!visitFileQ.empty()) {
@@ -473,12 +472,10 @@ void Finder::ReachableNodes(int beg) {
 
 		if (subGraphs.find(fq.first) == subGraphs.end())
 			loadSubgraph(fq.first);
-		
-		map<fileNo, set<int>> visitFileMap;
 
-		queue<int> subVisitq;
-		for (auto n : fq.second)
-			subVisitq.push(n);
+		map<fileNo, queue<int>> visitFileMap;
+
+		queue<int> subVisitq = fq.second;
 
 		while (!subVisitq.empty()) {
 			int tn = subVisitq.front();
@@ -493,9 +490,9 @@ void Finder::ReachableNodes(int beg) {
 				}
 				else { // 虚边
 					fileNo tarNo = parseInt(e.targetFile);
-					if (subGraphs.find(tarNo) == subGraphs.end()||
+					if (subGraphs.find(tarNo) == subGraphs.end() ||
 						(subGraphs[tarNo].nodeVisited.find(e.targetNode) == subGraphs[tarNo].nodeVisited.end()))
-						visitFileMap[tarNo].insert(e.targetNode);
+						visitFileMap[tarNo].push(e.targetNode);
 				}
 			}
 
@@ -507,12 +504,38 @@ void Finder::ReachableNodes(int beg) {
 		for (auto m : visitFileMap)
 			visitFileQ.push(m);
 	}
+}
 
+void Finder::ReachableNodes(int beg) {
+	reachRefresh(beg, false);
 	prtReachableNodes();
 }
 
+void Finder::prtPath(int cur, int target, int finish) {
+	if (cur != target) prtPath(prev[cur], target, finish);
+	cout << cur << (cur == finish ? "\n" : "->");
+}
+
 double Finder::ShortestPath(int start, int end) {
-	return 0;
+	// dijkstra
+	fileNo fin = findStoredFile(end);
+	if (fin <= 0) {
+		if (fin == 0)
+			error("Node " + to_string(end) + " is not stored!");
+		else
+			error("Two nodes are not connected!");
+		return INF;
+	}
+	
+	reachRefresh(start, true);
+	if (distance.find(end) == distance.end()) {
+		error("Two nodes are not connected!");
+		return INF;
+	}
+
+	prtPath(end, start, end);
+
+	return distance[end];
 }
 
 Finder::~Finder() = default;

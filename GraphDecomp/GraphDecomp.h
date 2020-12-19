@@ -86,7 +86,7 @@ public:
 	void ReachablePoints(int node);
 	// - 指定两个点，输出最短路径
 	// 如果指定的节点不存在，报错即可
-	void ShortestPath(int start, int end);
+	double ShortestPath(int start, int end);
 
 	void ResetSubFolder();			// 重设子文件夹
 private:
@@ -222,19 +222,18 @@ private:
 	//queue<pair<fileNo, queue<int>>> visitFileQueue;			// 文件访问队列以及需要访问的节点
 	map<int, int> prev;						// 前继节点
 	set<int> reachableNodes;				// 可达点集合
+	map<int, double> distance;				// 距离映射
+
 	// 寻找开始为节点的存储文件
 	fileNo findStoredFile(int beg);
 	// 加载子图
 	void loadSubgraph(fileNo fn);
+	// 可达基函数
+	void reachRefresh(int beg, bool findPath);
+
 	// 打印可达节点
 	void prtReachableNodes() const;
-	// 搜索可达节点
-	void searchReachableNodes(int node);
 
-	// 寻找环路
-	bool findLoop(int cur, int target);
-	// 寻找最短路径
-	double findShortestPath(int start, int end);
 	// 打印路径
 	void prtPath(int cur, int target, int finish);
 };
