@@ -455,11 +455,13 @@ void Finder::prtReachableNodes() const {
 
 void Finder::reachRefresh(int beg, bool findPath) {
 	// BFS 寻找可达节点
+	// dijkstra 寻找最短路径
+	// TODO: 单文件不稳定。
 	queue<pair<fileNo, queue<int>>> visitFileQ;		// 文件访问队列
 	fileNo init = findStoredFile(beg);
 	if (init <= 0) {
 		if (init == 0)								// 没有被存储 
-			error("No such node is stored!");
+			error("Node " + to_string(beg) + " is not stored!");
 		prtReachableNodes();
 		return;										// 或者是孤立节点
 	}
@@ -483,21 +485,36 @@ void Finder::reachRefresh(int beg, bool findPath) {
 			if (flag) flag = false;
 			else reachableNodes.insert(tn);
 
+			// 该节点访问完毕
+			if (findPath) subGraphs[fq.first].nodeVisited.insert(tn);
+
 			for (auto e : subGraphs[fq.first].adjListGraph[tn]) {
+				int toNode = RESNODE;
+				fileNo tarNo = parseInt(e.targetFile);
 				if (e.end != -1) { // 实边
-					if (subGraphs[fq.first].nodeVisited.find(tn) == subGraphs[fq.first].nodeVisited.end())
+					if (subGraphs[fq.first].nodeVisited.find(e.end) == subGraphs[fq.first].nodeVisited.end()) {
 						subVisitq.push(e.end);
+						toNode = e.end;
+					}
 				}
 				else { // 虚边
-					fileNo tarNo = parseInt(e.targetFile);
 					if (subGraphs.find(tarNo) == subGraphs.end() ||
-						(subGraphs[tarNo].nodeVisited.find(e.targetNode) == subGraphs[tarNo].nodeVisited.end()))
+						(subGraphs[tarNo].nodeVisited.find(e.targetNode) == subGraphs[tarNo].nodeVisited.end())) {
 						visitFileMap[tarNo].push(e.targetNode);
+						toNode = e.targetNode;
+					}
+				}
+				if (findPath && toNode != RESNODE) {
+					if (distance.find(toNode) == distance.end()||
+						distance[toNode] > distance[tn] + e.weight) {
+						distance[toNode] = distance[tn] + e.weight;
+						prev[toNode] = tn;
+					}
 				}
 			}
 
 			// 该节点访问完毕
-			subGraphs[fq.first].nodeVisited.insert(tn);
+			if(!findPath) subGraphs[fq.first].nodeVisited.insert(tn);
 		}
 
 		// 该轮文件访问完毕
@@ -519,14 +536,15 @@ void Finder::prtPath(int cur, int target, int finish) {
 double Finder::ShortestPath(int start, int end) {
 	// dijkstra
 	fileNo fin = findStoredFile(end);
-	if (fin <= 0) {
-		if (fin == 0)
-			error("Node " + to_string(end) + " is not stored!");
-		else
-			error("Two nodes are not connected!");
+
+	if (fin == 0){
+		error("Node " + to_string(end) + " is not stored!");
 		return INF;
 	}
-	
+
+	distance[start] = 0;
+	prev[start] = start;
+
 	reachRefresh(start, true);
 	if (distance.find(end) == distance.end()) {
 		error("Two nodes are not connected!");

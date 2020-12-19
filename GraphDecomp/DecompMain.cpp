@@ -3,16 +3,16 @@
 int main(int argc, char* argv[]) {
 #ifdef _DEBUG
 	for (int i = 30; i < 110; i = i + 10) {
-		//int i = 10;
+		//int i = 100;
 		cout << "-------------------------" << endl;
 		GraphDecomp gd(i, "../GraphGen/G.txt", "./subGraph/");
 		gd.Decomp(kl);			// 大部分情况下 dfs 更好
 		//cout << "割边权重总和：" << gd.Evaluate() << endl;
 		gd.Optimize();
 		cout << (gd.Check() ? "true" : "false") << endl;
-		// 子图上的算法错误！
 		gd.ReachablePoints(1);	
-		//gd.ShortestPath(20, 68);
+		// 子图上的算法错误！
+		cout << "路径长度：" << gd.ShortestPath(1, 99) << endl; 
 	}
 	
 #else
