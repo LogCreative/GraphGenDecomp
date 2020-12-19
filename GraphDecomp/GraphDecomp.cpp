@@ -19,14 +19,12 @@ void GraphDecomp::Decomp(DecompSol sol) {
 	
 	Decomposer decomp(n, fs, subDir, sol);
 	fs.close();
-}
 
-/*
-double GraphDecomp::Evaluate() {
-	Evaluator ev(n, subDir);
-	return ev.Evaluate();
+	double ev = decomp.Evaluate();
+	double aw = decomp.GetAllWeights();
+
+	cout << "评估：" << ev << '/' << aw << '=' << ev / aw << endl;
 }
-*/
 
 void GraphDecomp::Optimize() {
 	Optimizer op(n, subDir);
@@ -143,6 +141,13 @@ void Decomposer::initialCostMat() {
 				+ adjMat[j.first].getConnWeight(i.first);
 }
 
+double Decomposer::getCostValue(int i, int j) {
+	if (costMat.find(i) == costMat.end() ||
+		costMat[i].find(j) == costMat[i].end())
+		return 0;
+	return costMat[i][j];
+}
+
 void Decomposer::divide(set<int> S) {
 	// 开始时直接按序号将连通节点分为两半
 	set<int> A, B;
@@ -221,34 +226,6 @@ void Decomposer::Kerninghan_Lin() {
 	outputSubAdjGraphs();
 }
 
-void Decomposer::OuputPartitions() const {
-	queue<set<int>> outputPartq = partitions;
-	fstream partfs(subDir + "\\partitions.txt", fstream::out);
-	while (!outputPartq.empty()) {
-		set<int> s = outputPartq.front();
-		outputPartq.pop();
-		for (auto n : s)
-			partfs << n << ' ';
-		partfs << endl;
-	}
-	partfs.close();
-}
-
-void Decomposer::outputSubAdjGraphs() {
-	while (!partitions.empty()) {
-		set<int> s = partitions.front();
-		partitions.pop();
-		fstream subfs(getFileString(), fstream::out);
-		fileNum++;
-		for (auto n : s) {
-			subfs << node(n);
-			for (auto e : adjListGraph[n])
-				subfs << e;
-		}
-		subfs.close();
-	}
-}
-
 void Decomposer::allocateIsoNodes() {
 	set<int> isoSet;
 	for (auto in : isoNodes) {
@@ -262,9 +239,77 @@ void Decomposer::allocateIsoNodes() {
 		partitions.push(isoSet);
 }
 
-Decomposer::~Decomposer() = default;
+void Decomposer::OuputPartitions() const {
+	queue<set<int>> outputPartq = partitions;
+	fstream partfs(subDir + "\\partitions.txt", fstream::out);
+	while (!outputPartq.empty()) {
+		set<int> s = outputPartq.front();
+		outputPartq.pop();
+		for (auto n : s)
+			partfs << n << ' ';
+		partfs << endl;
+	}
+	partfs.close();
+}
 
-// Evaluator
+void Decomposer::outputSubAdjGraphs() const {
+	queue<set<int>> partTmp = partitions;
+	fileNo fileNum = 1;
+	while (!partTmp.empty()) {
+		set<int> s = partTmp.front();
+		partTmp.pop();
+		fstream subfs(getFileString(fileNum), fstream::out);
+		fileNum++;
+		for (auto n : s) {
+			subfs << node(n);
+			auto adjG = adjListGraph;
+			for (auto e : adjG[n])
+				subfs << e;
+		}
+		subfs.close();
+	}
+}
+
+double Decomposer::Evaluate(){
+	// 只需要考虑cost
+	// 每两个子集进行比较
+	double loss = 0;
+	
+	queue<set<int>> partTmp = partitions;
+	set<set<int>> partitionSet;
+	while (!partTmp.empty()) {
+		partitionSet.insert(partTmp.front());
+		partTmp.pop();
+	}
+
+	for (auto i = partitionSet.begin(); i != partitionSet.end(); ++i) {
+		auto j = i;
+		++j;
+		for (; j != partitionSet.end(); ++j)
+			for (auto ik : *i)
+				for (auto jk : *j)
+					loss += getCostValue(ik, jk);
+	}
+
+	return loss;
+}
+
+double Decomposer::GetAllWeights() {
+	double total = 0;
+
+	// 所有节点 = 孤立节点（无连接权重） + 连通节点
+	set<int> connNodes;
+	for (auto n : adjListGraph)
+		connNodes.insert(n.first);
+
+	for (auto i : connNodes)
+		for (auto j : connNodes)
+			total += adjMat[i].getConnWeight(j);
+
+	return total;
+}
+
+Decomposer::~Decomposer() = default;
 
 Optimizer::Optimizer(int _n, string _subDir) {
 	n = _n;

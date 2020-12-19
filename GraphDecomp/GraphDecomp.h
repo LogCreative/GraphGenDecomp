@@ -70,8 +70,6 @@ public:
 		【在结果正确的前提下，计算权重之和越小，分数越高。】
 	*/
 	void Decomp(DecompSol sol);
-	// 评估
-	double Evaluate();
 	/* (2) 优化子图存储
 	上述图分割算法导致分割成的多个子图之间存在重复的节点，请设计一个方法，使
 	- 多个子图文件中分别载入程序后，不存在重复的节点
@@ -88,7 +86,8 @@ public:
 	// 如果指定的节点不存在，报错即可
 	double ShortestPath(int start, int end);
 
-	void ResetSubFolder();			// 重设子文件夹
+	// 重设子文件夹
+	void ResetSubFolder();
 private:
 	int n;
 	string mainDir;		// 主图文件
@@ -139,6 +138,12 @@ public:
 	// 输出节点分配，便于验证
 	void OuputPartitions() const;
 
+	// 评估
+	double Evaluate();
+
+	// 获取所有边权重和
+	double GetAllWeights();
+
 private:
 	DecompSol sol;
 
@@ -150,12 +155,14 @@ private:
 	void initialAdjMat();
 	// 初始化损失矩阵
 	void initialCostMat();
+	// 获取损失矩阵值
+	double getCostValue(int i, int j);
 	// 切分一个集合
 	void divide(set<int> S);
 	// 二分集合优化
 	void optimizeParts(set<int> &A, set<int> &B);
 	// 输出连通子图
-	void outputSubAdjGraphs();
+	void outputSubAdjGraphs() const;
 	// 分配孤立节点
 	void allocateIsoNodes();
 
@@ -165,16 +172,6 @@ class FileProcessor : public Processor {
 protected:
 	vector<string> files;
 	map<int, fileNo> nodeFileMap;			// 节点-文件映射
-};
-
-// 评估器
-class Evaluator : public FileProcessor {
-public:
-	Evaluator(int _n, string _subDir);
-	~Evaluator();
-
-	// 评估
-	double Evaluate();
 };
 
 // 优化器

@@ -44,7 +44,6 @@ public:
 		friend stringstream& operator>>(stringstream& ss, node& n) {
 			node nt;
 			char ch1, ch2;
-			char pre;
 			if (ss >> ch1 >> nt.data >> ch2) {
 				if (ch1 != '<' || ch2 != '>') {
 					ss.clear(fstream::failbit);

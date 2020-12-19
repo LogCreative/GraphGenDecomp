@@ -2,12 +2,11 @@
 
 int main(int argc, char* argv[]) {
 #ifdef _DEBUG
-	for (int i = 30; i < 110; i = i + 10) {
+	for (int i = 10; i < 110; i = i + 10) {
 		//int i = 100;
 		cout << "-------------------------" << endl;
 		GraphDecomp gd(i, "../GraphGen/G.txt", "./subGraph/");
-		gd.Decomp(kl);			// 大部分情况下 dfs 更好
-		//cout << "割边权重总和：" << gd.Evaluate() << endl;
+		gd.Decomp(kl);
 		gd.Optimize();
 		cout << (gd.Check() ? "true" : "false") << endl;
 		gd.ReachablePoints(2);	
