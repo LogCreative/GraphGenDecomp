@@ -228,8 +228,6 @@ private:
 	fileNo findStoredFile(int beg);
 	// 加载子图
 	void loadSubgraph(fileNo fn);
-	// 可达基函数
-	void reachRefresh(int beg, bool findPath);
 
 	// 打印可达节点
 	void prtReachableNodes() const;

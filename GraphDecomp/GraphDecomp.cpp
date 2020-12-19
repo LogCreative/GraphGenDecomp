@@ -453,10 +453,8 @@ void Finder::prtReachableNodes() const {
 	cout << endl;
 }
 
-void Finder::reachRefresh(int beg, bool findPath) {
+void Finder::ReachableNodes(int beg) {
 	// BFS 寻找可达节点
-	// dijkstra 寻找最短路径
-	// TODO: 单文件不稳定。
 	queue<pair<fileNo, queue<int>>> visitFileQ;		// 文件访问队列
 	fileNo init = findStoredFile(beg);
 	if (init <= 0) {
@@ -485,46 +483,30 @@ void Finder::reachRefresh(int beg, bool findPath) {
 			if (flag) flag = false;
 			else reachableNodes.insert(tn);
 
-			// 该节点访问完毕
-			if (findPath) subGraphs[fq.first].nodeVisited.insert(tn);
-
 			for (auto e : subGraphs[fq.first].adjListGraph[tn]) {
 				int toNode = RESNODE;
 				fileNo tarNo = parseInt(e.targetFile);
 				if (e.end != -1) { // 实边
-					if (subGraphs[fq.first].nodeVisited.find(e.end) == subGraphs[fq.first].nodeVisited.end()) {
+					if (subGraphs[fq.first].nodeVisited.find(e.end) == subGraphs[fq.first].nodeVisited.end())
 						subVisitq.push(e.end);
-						toNode = e.end;
-					}
 				}
 				else { // 虚边
 					if (subGraphs.find(tarNo) == subGraphs.end() ||
-						(subGraphs[tarNo].nodeVisited.find(e.targetNode) == subGraphs[tarNo].nodeVisited.end())) {
+						(subGraphs[tarNo].nodeVisited.find(e.targetNode) == subGraphs[tarNo].nodeVisited.end()))
 						visitFileMap[tarNo].push(e.targetNode);
-						toNode = e.targetNode;
-					}
-				}
-				if (findPath && toNode != RESNODE) {
-					if (distance.find(toNode) == distance.end()||
-						distance[toNode] > distance[tn] + e.weight) {
-						distance[toNode] = distance[tn] + e.weight;
-						prev[toNode] = tn;
-					}
+
 				}
 			}
 
 			// 该节点访问完毕
-			if(!findPath) subGraphs[fq.first].nodeVisited.insert(tn);
+			subGraphs[fq.first].nodeVisited.insert(tn);
 		}
 
 		// 该轮文件访问完毕
 		for (auto m : visitFileMap)
 			visitFileQ.push(m);
 	}
-}
 
-void Finder::ReachableNodes(int beg) {
-	reachRefresh(beg, false);
 	prtReachableNodes();
 }
 
@@ -545,7 +527,8 @@ double Finder::ShortestPath(int start, int end) {
 	distance[start] = 0;
 	prev[start] = start;
 
-	reachRefresh(start, true);
+	// 使用 SPFA 算法。
+
 	if (distance.find(end) == distance.end()) {
 		error("Two nodes are not connected!");
 		return INF;
