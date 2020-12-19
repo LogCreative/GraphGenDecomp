@@ -152,7 +152,7 @@ void Decomposer::divide(set<int> S) {
 	// 开始时直接按序号将连通节点分为两半
 	set<int> A, B;
 	set<int>::iterator it = S.begin();
-	for(int size = (S.size() + 1) / 2; size > 0; --size){
+	for(int size = S.size() * SPLIT_RATIO; size > 0; --size){
 		A.insert(*it);
 		++it;
 	}
@@ -165,23 +165,78 @@ void Decomposer::divide(set<int> S) {
 	partitions.push(B);
 }
 
-void Decomposer::optimizeParts(set<int> &A, set<int> &B) {
-	if (sol != rough) {
-		// 计算外内差 D
-
+void Decomposer::calcDiffMat(set<int>& A, set<int>& B) {
+	// 计算外内差 D
+	for (auto a : A) {
+		// 计算外差距
+		double E = 0;
+		for (auto b : B)
+			E += getCostValue(a, b);
+		// 计算内差距
+		double I = 0;
+		for (auto ap : A)
+			I += getCostValue(a, ap);
+		diffCol[a] = E - I;
 	}
-	switch (sol)
-	{
-	case rough:
-		return;				// 粗略分配将不会进行优化
-	case ll:
 
-		break;
-	case kl:
-		
-		break;
-	default:
-		break;
+	for (auto b : B) {
+		double E = 0;
+		for (auto a : A)
+			E += getCostValue(b, a);
+		double I = 0;
+		for (auto bp : B)
+			I += getCostValue(b, bp);
+		diffCol[b] = E - I;
+	}
+}
+
+pair<int, double> Decomposer::getMaxDinSet(set<int>& S) {
+	int zmax = *S.begin();
+	double Dzmax = diffCol[zmax];
+	auto z = S.begin();
+	++z;
+	for (; z != S.end(); ++z)
+		if (diffCol[*z] > Dzmax) {
+			zmax = *z;
+			Dzmax = diffCol[*z];
+		}
+	return make_pair(zmax, Dzmax);
+}
+
+void Decomposer::optimizeParts(set<int>& A, set<int>& B) {
+	if (sol == ll) {
+		calcDiffMat(A, B);
+		set<int> Ap = A;
+		set<int> Bp = B;
+		vector<int> ak;
+		vector<int> bk;
+		vector<double> gain;
+		int size = B.size();
+		while (--size) {
+			pair<int, double> amax = getMaxDinSet(Ap);
+			pair<int, double> bmax = getMaxDinSet(Bp);
+			ak.push_back(amax.first);
+			bk.push_back(bmax.first);
+			Ap.erase(amax.first);
+			Ap.insert(bmax.first);
+			Bp.erase(bmax.first);
+			Bp.insert(amax.first);
+			gain.push_back(amax.second + bmax.second - 2 * getCostValue(amax.first, bmax.first));
+			calcDiffMat(Ap, Bp);
+		}
+		int k = 0;
+		double gainmax = gain[0];
+		for (int i = 1; i < gain.size(); ++i)
+			if (gain[i] > gainmax) {
+				k = i;
+				gainmax = gain[i];
+			}
+		for (int l = 0; l <= k; ++l) {
+			A.erase(ak[l]);
+			B.insert(ak[l]);
+			B.erase(bk[l]);
+			A.insert(bk[l]);
+		}
 	}
 }
 
@@ -212,7 +267,7 @@ void Decomposer::Kerninghan_Lin() {
 			set<int> partition = partitionSubq.front();
 			partitionSubq.pop();
 			divide(partition);		// 会进队另外两半
-			m_size = (partition.size() + 1) / 2;
+			m_size = partition.size() * SPLIT_RATIO;
 		}
 	}	
 

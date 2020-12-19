@@ -125,6 +125,8 @@ protected:
 
 };
 
+const double SPLIT_RATIO = 0.5;
+
 // 分解器
 class Decomposer : Processor {
 public:
@@ -150,6 +152,7 @@ private:
 	map<int, nodeStruct> adjMat;			// 邻接矩阵
 	queue<set<int>> partitions;				// 节点分配
 	map<int, map<int, double>> costMat;		// 损失矩阵
+	map<int, double> diffCol;				// 内外差列
 
 	// 初始化邻接矩阵
 	void initialAdjMat();
@@ -157,10 +160,15 @@ private:
 	void initialCostMat();
 	// 获取损失矩阵值
 	double getCostValue(int i, int j);
+	// 计算内外差列
+	void calcDiffMat(set<int>& A, set<int>& B);
+	// 获取集合范围内的最大D对应的节点
+	pair<int,double> getMaxDinSet(set<int>& S);
+
 	// 切分一个集合
 	void divide(set<int> S);
 	// 二分集合优化
-	void optimizeParts(set<int> &A, set<int> &B);
+	void optimizeParts(set<int>& A, set<int>& B);
 	// 输出连通子图
 	void outputSubAdjGraphs() const;
 	// 分配孤立节点

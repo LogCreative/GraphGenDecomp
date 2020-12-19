@@ -6,11 +6,10 @@ int main(int argc, char* argv[]) {
 		//int i = 100;
 		cout << "-------------------------" << endl;
 		GraphDecomp gd(i, "../GraphGen/G.txt", "./subGraph/");
-		gd.Decomp(kl);
+		gd.Decomp(ll);
 		gd.Optimize();
 		cout << (gd.Check() ? "true" : "false") << endl;
-		gd.ReachablePoints(2);	
-		// 子图上的算法错误！
+		gd.ReachablePoints(2);
 		cout << "路径长度：" << gd.ShortestPath(2, 99) << endl; 
 	}
 	
