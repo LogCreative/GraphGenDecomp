@@ -1,6 +1,7 @@
 // ·Ö½âÆ÷µÄUI
 
-#include "../GUI_facilities.h"
+#include "../GUIHeader/GUI_facilities.h"
+//#include "../GUIHeader/Graph.h"
 #include "../GraphDecomp/GraphDecomp.h"
 
 // GLOBALS
@@ -13,6 +14,8 @@ Fl_Input* I_OptFileModifier = NULL;
 Fl_Input* I_DecompSize = NULL;
 Fl_Choice* I_DecompAlg = NULL;
 Fl_Box* boxEff = NULL;
+progressbar* effp = NULL;
+Fl_Window* win = NULL;
 
 void PickFile_CB(Fl_Widget*, void*) {
     // Create native chooser
@@ -74,8 +77,11 @@ void butDecomp_CB(Fl_Widget*, void*) {
     OPTFIL = I_OptFileModifier->value();
 
     gd.Decomp(_sol);
-    string effstr = to_string(ev) + "/" + to_string(aw);
-    //boxEff->label(effstr.c_str());
+    string effstr = to_string((int)ev) + '/' + to_string((int)aw);
+    effp->update(ev / aw);
+    auto c = const_cast<char*>(effstr.c_str());
+    boxEff->copy_label(c);
+    boxEff->redraw_label();
     gd.Optimize();
 }
 
@@ -101,7 +107,7 @@ int main(int argc, char** argv) {
     const int PADDING = 20;
     const int MARGIN = 10;
     
-	Fl_Window* win = new Fl_Window(WIDTH, HEIGHT, "Decomposer");
+	win = new Fl_Window(WIDTH, HEIGHT, "Decomposer");
 	win->size_range(win->w(), win->h(), 0, 0);
 	win->begin();
 	{
@@ -168,10 +174,13 @@ int main(int argc, char** argv) {
         I_DecompAlg->value(0);
 
         groupDecompSet->end();
-        
-        boxEff = new Fl_Box(PADDING, groupDecompSet->y() + groupDecompSet->h() + MARGIN*2, 75, 50, "-/-");
 
-        Fl_Button* butDecomp = new Fl_Button(boxEff->x() + boxEff->w() + MARGIN, groupDecompSet->y() + groupDecompSet->h() + MARGIN, 100, 50, "DECOMPOSE");
+        effp = new progressbar(PADDING, groupDecompSet->y() + groupDecompSet->h() + MARGIN, 150, 20, 0);
+
+        boxEff = new Fl_Box(PADDING, groupDecompSet->y() + groupDecompSet->h() + MARGIN*2, 150, 50, "-/-");
+        boxEff->tooltip("Cut edge loss / Total edge weight");
+
+        Fl_Button* butDecomp = new Fl_Button(boxEff->x() + boxEff->w() + MARGIN, groupDecompSet->y() + groupDecompSet->h() + MARGIN, 140, 50, "DECOMP + OPT");
         butDecomp->callback(butDecomp_CB);
 
 	}

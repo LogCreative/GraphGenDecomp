@@ -16,7 +16,12 @@
 #include <FL/Fl_Tabs.H>
 #include <FL/Fl_Group.H>
 #include <FL/Fl_Choice.H>
+#include <FL/fl_draw.H>
 
+//------------------------------------------------------------------------------
+
+// Color is the type we use to represent color. We can use Color like this:
+//    grid.set_color(Color::red);
 struct Color {
     enum Color_type {
         red = FL_RED,
@@ -49,6 +54,48 @@ struct Color {
 private:
     char v;    // invisible and visible for now
     Fl_Color c;
+};
+
+//------------------------------------------------------------------------------
+
+struct Line_style {
+    enum Line_style_type {
+        solid = FL_SOLID,            // -------
+        dash = FL_DASH,              // - - - -
+        dot = FL_DOT,                // ....... 
+        dashdot = FL_DASHDOT,        // - . - . 
+        dashdotdot = FL_DASHDOTDOT,  // -..-..
+    };
+
+    Line_style(Line_style_type ss) :s(ss), w(0) { }
+    Line_style(Line_style_type lst, int ww) :s(lst), w(ww) { }
+    Line_style(int ss) :s(ss), w(0) { }
+
+    int width() const { return w; }
+    int style() const { return s; }
+private:
+    int s;
+    int w;
+};
+
+class progressbar : public Fl_Widget {
+    double progress;
+protected:
+    void draw() {
+        fl_color(Color::dark_red);
+        fl_rectf(x(), y(), w() * progress, h());
+        fl_color(Color::black);
+        fl_rect(x(), y(), w(), h());
+    }
+public:
+    progressbar(int X, int Y, int W, int H, double p):
+        Fl_Widget(X, Y, W, H), progress(p) {
+        draw();
+    }
+    void update(double p) {
+        progress = p;
+        redraw();
+    }
 };
 
 
