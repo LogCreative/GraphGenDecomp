@@ -2,8 +2,8 @@
 
 int main(int argc, char* argv[]) {
 #ifdef _DEBUG
-	for (int i = 10; i < 110; i = i + 10) {
-		//int i = 10;
+	//for (int i = 10; i < 110; i = i + 10) {
+		int i = 10;
 		cout << "-------------------------" << endl;
 		GraphDecomp gdr(i, "../GraphGen/G.txt", "./subGraph/");
 		gdr.Decomp(rough);
@@ -21,11 +21,11 @@ int main(int argc, char* argv[]) {
 		//cout << "-------------------------" << endl;
 		GraphDecomp gdk(i, "../GraphGen/G.txt", "./subGraph/");
 		gdk.Decomp(kl);
-		//gdk.Optimize();
+		gdk.Optimize();
 		//cout << (gdk.Check() ? "true" : "false") << endl;
 		//gdk.ReachablePoints(2);
 		//cout << "Â·¾¶³¤¶È£º" << gdk.ShortestPath(2, 99) << endl;
-	}
+	//}
 #else
 	if (argc == 1) error("Please assgin the main graph directory and subgraph directory.");
 	string _n = argv[1];

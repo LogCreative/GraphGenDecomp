@@ -48,7 +48,9 @@ void PickDir_CB(Fl_Widget*, void*) {
     case  1: fprintf(stderr, "*** CANCEL\n"); fl_beep(); break;		// CANCEL
     default: 								// PICKED DIR
         if (native.filename()) {
-            G_Sfilename->value(native.filename());
+            string dir = native.filename();
+            dir = dir + '\\';
+            G_Sfilename->value(dir.c_str());
         }
         else {
             G_Sfilename->value("NULL");
@@ -74,6 +76,7 @@ void butDecomp_CB(Fl_Widget*, void*) {
     gd.Decomp(_sol);
     string effstr = to_string(ev) + "/" + to_string(aw);
     //boxEff->label(effstr.c_str());
+    gd.Optimize();
 }
 
 int main(int argc, char** argv) {
