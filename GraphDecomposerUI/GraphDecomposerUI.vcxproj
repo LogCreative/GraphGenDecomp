@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{0c2a6d53-942e-4e3f-b8c3-54dd33025ce2}</ProjectGuid>
-    <RootNamespace>GraphGenDecompUI</RootNamespace>
+    <ProjectGuid>{ca2634e6-ad56-4eb9-b3f9-c580cb95ddd4}</ProjectGuid>
+    <RootNamespace>GraphDecomposerUI</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -141,11 +141,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\GraphCommon.hpp" />
-    <ClInclude Include="GUI_facilities.h" />
+    <ClCompile Include="..\GraphDecomp\GraphDecomp.cpp" />
+    <ClCompile Include="Decomposer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Decomposer.cpp" />
+    <ClInclude Include="..\GraphDecomp\GraphDecomp.h" />
+    <ClInclude Include="..\GUI_facilities.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

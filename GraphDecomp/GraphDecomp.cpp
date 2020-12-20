@@ -7,6 +7,9 @@ char R_DILIMETER = ' ';
 char DILIMETER = ',';
 int RESNODE = -2;
 
+double ev = 0;
+double aw = 0;
+
 GraphDecomp::GraphDecomp(int _n, string _mainDir, string _subDir) :
 	n(_n), mainDir(_mainDir), subDir(_subDir)
 {
@@ -27,8 +30,8 @@ void GraphDecomp::Decomp(DecompSol sol) {
 	Decomposer decomp(n, fs, subDir, sol);
 	fs.close();
 
-	double ev = decomp.Evaluate();
-	double aw = decomp.GetAllWeights();
+	ev = decomp.Evaluate();
+	aw = decomp.GetAllWeights();
 
 	cout << "ÆÀ¹À£º" << ev << '/' << aw << '=' << ev / aw << endl;
 }
@@ -95,7 +98,7 @@ string Processor::parseFileName(string filePath) {
 	return filePath.substr(beg + 1, filePath.find_last_of('.') - beg - 1);
 }
 
-int Processor::parseInt(string str) {
+int parseInt(string str) {
 	int n = 0;
 	for (auto c : str) {
 		if (c >= '0' && c <= '9')

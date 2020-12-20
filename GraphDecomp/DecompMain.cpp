@@ -26,7 +26,6 @@ int main(int argc, char* argv[]) {
 		//gdk.ReachablePoints(2);
 		//cout << "Â·¾¶³¤¶È£º" << gdk.ShortestPath(2, 99) << endl;
 	}
-	
 #else
 	if (argc == 1) error("Please assgin the main graph directory and subgraph directory.");
 	string _n = argv[1];

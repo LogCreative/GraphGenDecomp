@@ -49,12 +49,17 @@ extern string OPTFIL;			// 优化文件前缀
 
 typedef int fileNo;				// 文件编号
 
+// 获取字符串中的整数
+int parseInt(string str);
+
 /******************头文件分离********************/
 
 extern char R_PREFIX;			// 读取时的节点前缀
 extern char R_DILIMETER;		// 读取时的分割符号
 extern char DILIMETER;			// 边的切割符号
 extern int RESNODE;				// 保留节点
+extern double ev;				// 割边权重和
+extern double aw;				// 总权重和
 
 // 公共类
 class GraphCommon {
@@ -443,8 +448,6 @@ protected:
 	int getFiles(string fileFolderPath, string fileExtension, vector<string>& file, string nameFilter);
 	// 获取文件名称
 	string parseFileName(string filePath);
-	// 获取字符串中的整数
-	int parseInt(string str);
 	// 获取文件名中的整数
 	fileNo parseFileInt(string filePath);
 	fstream* subfs;		// 子文件

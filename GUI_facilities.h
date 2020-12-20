@@ -15,6 +15,7 @@
 #include <FL/Fl_Native_File_Chooser.H>
 #include <FL/Fl_Tabs.H>
 #include <FL/Fl_Group.H>
+#include <FL/Fl_Choice.H>
 
 struct Color {
     enum Color_type {

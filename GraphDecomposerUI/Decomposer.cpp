@@ -1,10 +1,18 @@
 // ·Ö½âÆ÷µÄUI
 
-#include "GUI_facilities.h"
+#include "../GUI_facilities.h"
+#include "../GraphDecomp/GraphDecomp.h"
 
 // GLOBALS
 Fl_Input* G_Mfilename = NULL;
 Fl_Input* G_Sfilename = NULL;
+Fl_Input* I_MainNodeModifier = NULL;
+Fl_Choice* I_MainDilimeter = NULL;
+Fl_Input* I_SubFileModifier = NULL;
+Fl_Input* I_OptFileModifier = NULL;
+Fl_Input* I_DecompSize = NULL;
+Fl_Choice* I_DecompAlg = NULL;
+Fl_Box* boxEff = NULL;
 
 void PickFile_CB(Fl_Widget*, void*) {
     // Create native chooser
@@ -47,6 +55,22 @@ void PickDir_CB(Fl_Widget*, void*) {
         }
         break;
     }
+}
+
+void butDecomp_CB(Fl_Widget*, void*) {
+    GraphDecomp gd(parseInt(I_DecompSize->value()), G_Mfilename->value(), G_Sfilename->value());
+    DecompSol _sol;
+    if (strcmp(I_DecompAlg->text(),"hardest")==0) _sol = kl;
+    else if (strcmp(I_DecompAlg->text(),"medium")==0) _sol = ll;
+    else if (strcmp(I_DecompAlg->text(),"order")==0) _sol = rough;
+    gd.Decomp(_sol);
+    string effstr = to_string(ev) + "/" + to_string(aw);
+    boxEff->label(effstr.c_str());
+
+}
+
+void butOptimize_CB(Fl_Widget*, void*) {
+
 }
 
 int main(int argc, char** argv) {
@@ -97,13 +121,55 @@ int main(int argc, char** argv) {
         Fl_Group* groupMainPara = new Fl_Group(PADDING, butSubChooser->y() + butSubChooser->h() + MARGIN * 3, WIDTH / 2 - MARGIN * 2, 70, "Main Graph Parameters");
         groupMainPara->box(FL_THIN_UP_FRAME);
   
-        Fl_Input* I_MainNodeModifier = new Fl_Input(PADDING + 120, groupMainPara->y() + MARGIN, 100, 25, "Node Modifier");
+        I_MainNodeModifier = new Fl_Input(PADDING + 120, groupMainPara->y() + MARGIN, 100, 25, "Node Modifier");
         I_MainNodeModifier->tooltip("The node modifier of the main graph file.");
+        I_MainNodeModifier->value("P");
 
-        Fl_Input* I_MainDilimeter = new Fl_Input(PADDING + 120, I_MainNodeModifier->y() + MARGIN*2.5, 100, 25, "Edge Dilimeter");
+        I_MainDilimeter = new Fl_Choice(PADDING + 120, I_MainNodeModifier->y() + MARGIN*2.5, 100, 25, "Edge Dilimeter");
         I_MainDilimeter->tooltip("The edge dilimeter of the main graph file.");
+        I_MainDilimeter->add("space");
+        I_MainDilimeter->add("comma");
+        I_MainDilimeter->value(0);
         
         groupMainPara->end();
+
+
+        Fl_Group* groupSubPara = new Fl_Group(PADDING + groupMainPara->w() + MARGIN, groupMainPara->y(), groupMainPara->w(), groupMainPara->h(), "Sub Graph Parameters");
+        groupSubPara->box(FL_THIN_UP_FRAME);
+
+        I_SubFileModifier = new Fl_Input(groupSubPara->x() + 120, groupSubPara->y() + MARGIN, 100, 25, "Decomp Modifier");
+        I_SubFileModifier->tooltip("The file modifier of the decomposed subgraph file.");
+        I_SubFileModifier->value("A");
+
+        I_OptFileModifier = new Fl_Input(groupSubPara->x() + 120, I_SubFileModifier->y() + MARGIN * 2.5, 100, 25, "Optimize Modifier");
+        I_OptFileModifier->tooltip("The file modifier of the optimized subgraph file.");
+        I_OptFileModifier->value("O");
+
+        groupSubPara->end();
+
+        Fl_Group* groupDecompSet = new Fl_Group(PADDING , groupMainPara->y() + groupMainPara->h()+ MARGIN * 2, groupMainPara->w(), groupMainPara->h(), "Decomposer Settings");
+        groupDecompSet->box(FL_THIN_UP_FRAME);
+
+        I_DecompSize = new Fl_Input(groupDecompSet->x() + 120, groupDecompSet->y() + MARGIN, 100, 25, "Decomposed Size");
+        I_DecompSize->tooltip("The maximum size of nodes in decomposed subgraph files.");
+        I_DecompSize->value("20");
+
+        I_DecompAlg = new Fl_Choice(groupDecompSet->x() + 120, I_DecompSize->y() + MARGIN * 2.5, 100, 25, "Decomp Algorithm");
+        I_DecompAlg->tooltip("The hardness of dividing algorithm (Kerninghan-Lin)");
+        I_DecompAlg->add("hardest");
+        I_DecompAlg->add("medium");
+        I_DecompAlg->add("order");
+        I_DecompAlg->value(0);
+
+        groupDecompSet->end();
+        
+        boxEff = new Fl_Box(PADDING, groupDecompSet->y() + groupDecompSet->h() + MARGIN*2, 75, 50, "-/-");
+
+        Fl_Button* butDecomp = new Fl_Button(boxEff->x() + boxEff->w() + MARGIN, groupDecompSet->y() + groupDecompSet->h() + MARGIN, 100, 50, "DECOMPOSE");
+        butDecomp->callback(butDecomp_CB);
+
+        Fl_Button* butOptimize = new Fl_Button(butDecomp->x()+butDecomp->w()+MARGIN,butDecomp->y(), 100, 50, "OPTIMIZE");
+        butOptimize->callback(butOptimize_CB);
 
 	}
 	win->end();
