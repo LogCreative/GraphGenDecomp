@@ -15,16 +15,58 @@
 #define GRAPH_GEN_GUARD 1
 
 #include "../std_lib_facilities.h"
-#include "../GraphCommon.hpp"
+//#include "../GraphCommon.hpp"
 //#include <boost/random.hpp>
 
 enum nodeType { continuous, discrete };					// 点的生成类型：连续的，离散的
 enum edgeType { Tree, Graph };		// 边的生成类型：树，图，带重边的图
 enum isoType { Single, Multi };		// 连通图类型：单个，多个
 
-const int MAX_INCREASEMENT = 100;	// 节点生成时的最大递增量
-const int MAX_ISOGRAPH = 5;			// 最大联通子图个数
-const int MAX_CHILD = 5;			// 最大孩子数
+extern int MAX_INCREASEMENT;	// 节点生成时的最大递增量
+extern int MAX_ISOGRAPH;		// 最大联通子图个数
+extern int MAX_CHILD;			// 最大孩子数
+
+/**********************头文件分离***********************/
+
+// 公共类
+class GraphCommon {
+public:
+	// 有向边的定义
+	struct edge {
+		int start;
+		int end;
+		double weight;
+
+		edge(int s, int e, double w) : start(s), end(e), weight(w) {}
+		~edge() = default;
+
+		// 输出函数
+		friend fstream& operator<<(fstream& fs, const edge& e) {
+			fs << '<'
+				+ to_string(e.start) + ','
+				+ to_string(e.end) + ','
+				+ to_string(e.weight)
+				+ '>' + '\n';
+			return fs;
+		}
+	};
+
+	// 读取函数
+	void ReadNode(fstream& fs) {
+		while (!fs.eof()) {
+			string rl;
+			fs >> rl;
+			if (find(rl.begin(), rl.end(), ',') == rl.end() && rl != "")
+				nodeSet.insert(stoi(rl.substr(1, rl.length() - 1)));
+		}
+	}
+
+protected:
+	set<int> nodeSet;						// 节点
+	map<int, vector<edge>> adjListGraph;	// 邻接表图
+};
+
+/**********************头文件分离结束***********************/
 
 class GraphGen: GraphCommon {
 public:

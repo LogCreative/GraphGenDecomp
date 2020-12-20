@@ -1,5 +1,12 @@
 #include "GraphDecomp.h"
 
+string DECOMPFIL = "A";
+string OPTFIL = "O";
+char R_PREFIX = 'P';
+char R_DILIMETER = ' ';
+char DILIMETER = ',';
+int RESNODE = -2;
+
 GraphDecomp::GraphDecomp(int _n, string _mainDir, string _subDir) :
 	n(_n), mainDir(_mainDir), subDir(_subDir)
 {

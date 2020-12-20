@@ -1,4 +1,6 @@
-﻿/* 已知限制:
+﻿#pragma message("This header has been isolated.")
+
+/* 已知限制:
 *   0. 支持 3000+ 以上的节点数/边数。
 *	1. 允许重边，不允许负边。
 *	2. 唯一的节点数量作为总数量。
@@ -19,7 +21,7 @@
 */
 
 const char R_PREFIX = 'P';			// 读取时的节点前缀
-const char R_DILIMETER = ' ';			// 读取时的分割符号
+const char R_DILIMETER = ' ';		// 读取时的分割符号
 const char DILIMETER = ',';			// 边的切割符号
 const int RESNODE = -2;				// 保留节点
 

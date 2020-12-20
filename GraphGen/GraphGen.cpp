@@ -1,5 +1,9 @@
 #include "GraphGen.h"
 
+int MAX_INCREASEMENT = 100;
+int MAX_ISOGRAPH = 5;
+int MAX_CHILD = 5;
+
 GraphGen::GraphGen(string _directory, nodeType _nt, edgeType _et, isoType _it):
 	directory(_directory), nt(_nt), et(_et), it(_it), max_node(100)
 {
@@ -20,7 +24,7 @@ void GraphGen::AppendGraph(int y) {
 	fstream ifs(directory, fstream::in);
 	if (!ifs) error("Cannot open file.");
 	nodeSet.clear();
-	readNode(ifs);
+	ReadNode(ifs);
 	max_node = *max_element(nodeSet.begin(), nodeSet.end());		// 获取最大元素作为最大值
 	ifs.close();
 
