@@ -94,7 +94,7 @@ int Processor::getFiles(string fileFolderPath, string fileExtension, vector<stri
 }
 
 string Processor::parseFileName(string filePath) {
-	auto beg = filePath.find('\\');
+	auto beg = filePath.find_last_of('\\');
 	return filePath.substr(beg + 1, filePath.find_last_of('.') - beg - 1);
 }
 

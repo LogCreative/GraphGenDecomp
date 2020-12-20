@@ -66,7 +66,7 @@ void butDecomp_CB(Fl_Widget*, void*) {
     if (strcmp(I_DecompAlg->text(),"hardest")==0) _sol = kl;
     else if (strcmp(I_DecompAlg->text(),"medium")==0) _sol = ll;
     else if (strcmp(I_DecompAlg->text(),"order")==0) _sol = rough;
-    R_PREFIX = I_MainNodeModifier->value()[0];
+    R_PREFIX = strlen(I_MainNodeModifier->value()) == 0 ? '\0' : I_MainNodeModifier->value()[0];
     if (strcmp(I_MainDilimeter->text(), "space") == 0) R_DILIMETER = ' ';
     else if (strcmp(I_MainDilimeter->text(), "comma") == 0)
         R_DILIMETER = ',';
@@ -118,7 +118,7 @@ int main(int argc, char** argv) {
         butMainChooser->callback(PickFile_CB);
         
         G_Sfilename = new Fl_Input(PADDING + 100, G_Mfilename->y() + G_Mfilename->h() + MARGIN, WIDTH - 2 * PADDING - 200, 25, "Sub Graph Dir");
-        G_Sfilename->value(argc <= argn ? "." : argv[argn]);
+        G_Sfilename->value(argc <= argn ? ".\\subgraph\\" : argv[argn]);
         G_Sfilename->tooltip("Choose the subgraph directory.");
 
         Fl_Button* butSubChooser = new Fl_Button(WIDTH - PADDING - 100, G_Sfilename->y(), 100, 25, "Pick Sub Dir");
