@@ -15,16 +15,19 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\GraphCommon.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="GUI_facilities.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="Decomposer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\GraphDecomp\GraphDecomp.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\GraphDecomp\GraphDecomp.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\GUI_facilities.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
