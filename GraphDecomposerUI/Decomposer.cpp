@@ -1,7 +1,6 @@
 // ·Ö½âÆ÷µÄUI
 
-#include "../GUIHeader/GUI_facilities.h"
-//#include "../GUIHeader/Graph.h"
+#include "../GUI_facilities.h"
 #include "../GraphDecomp/GraphDecomp.h"
 
 // GLOBALS
@@ -15,7 +14,11 @@ Fl_Input* I_DecompSize = NULL;
 Fl_Choice* I_DecompAlg = NULL;
 Fl_Box* boxEff = NULL;
 progressbar* effp = NULL;
+Fl_Multiline_Input* O_Partition = NULL;
 Fl_Window* win = NULL;
+Fl_Input* I_NodeStart = NULL;
+Fl_Input* I_NodeEnd = NULL;
+Fl_Multiline_Input* O_FinderUtil = NULL;
 
 void PickFile_CB(Fl_Widget*, void*) {
     // Create native chooser
@@ -62,27 +65,53 @@ void PickDir_CB(Fl_Widget*, void*) {
     }
 }
 
+void globalRefresh() {
+    if (strcmp(I_MainDilimeter->text(), "space") == 0) R_DILIMETER = ' ';
+    else if (strcmp(I_MainDilimeter->text(), "comma") == 0)
+        R_DILIMETER = ',';
+    DECOMPFIL = I_SubFileModifier->value();
+    OPTFIL = I_OptFileModifier->value();
+}
+
 void butDecomp_CB(Fl_Widget*, void*) {
     GraphDecomp gd(parseInt(I_DecompSize->value()), G_Mfilename->value(), G_Sfilename->value());
+    gd.ResetSubFolder();
     DecompSol _sol;
     
     if (strcmp(I_DecompAlg->text(),"hardest")==0) _sol = kl;
     else if (strcmp(I_DecompAlg->text(),"medium")==0) _sol = ll;
     else if (strcmp(I_DecompAlg->text(),"order")==0) _sol = rough;
     R_PREFIX = strlen(I_MainNodeModifier->value()) == 0 ? '\0' : I_MainNodeModifier->value()[0];
-    if (strcmp(I_MainDilimeter->text(), "space") == 0) R_DILIMETER = ' ';
-    else if (strcmp(I_MainDilimeter->text(), "comma") == 0)
-        R_DILIMETER = ',';
-    DECOMPFIL = I_SubFileModifier->value();
-    OPTFIL = I_OptFileModifier->value();
+    
+    globalRefresh();
 
-    gd.Decomp(_sol);
-    string effstr = to_string((int)ev) + '/' + to_string((int)aw);
+    O_Partition->value(gd.Decomp(_sol).c_str());
     effp->update(ev / aw);
+
+    string effstr = to_string((int)ev) + '/' + to_string((int)aw);
+
+    gd.Optimize();
+    
+    effstr = (gd.Check() ? "PASS " : "NOPASS ") + effstr;
     auto c = const_cast<char*>(effstr.c_str());
     boxEff->copy_label(c);
     boxEff->redraw_label();
-    gd.Optimize();
+}
+
+void Reach_CB(Fl_Widget*, void*) {
+    GraphDecomp gdr(parseInt(I_DecompSize->value()), G_Mfilename->value(), G_Sfilename->value());
+
+    globalRefresh();
+
+    O_FinderUtil->value(gdr.ReachablePoints(parseInt(I_NodeStart->value())).c_str());
+}
+
+void Shortest_CB(Fl_Widget*, void*) {
+    GraphDecomp gds(parseInt(I_DecompSize->value()), G_Mfilename->value(), G_Sfilename->value());
+
+    globalRefresh();
+
+    O_FinderUtil->value(gds.ShortestPath(parseInt(I_NodeStart->value()),parseInt(I_NodeEnd->value())).c_str());
 }
 
 int main(int argc, char** argv) {
@@ -103,7 +132,7 @@ int main(int argc, char** argv) {
 		argn++;
 #endif
     const int WIDTH = 640;
-    const int HEIGHT = 400;
+    const int HEIGHT = 500;
     const int PADDING = 20;
     const int MARGIN = 10;
     
@@ -183,7 +212,33 @@ int main(int argc, char** argv) {
         Fl_Button* butDecomp = new Fl_Button(boxEff->x() + boxEff->w() + MARGIN, groupDecompSet->y() + groupDecompSet->h() + MARGIN, 140, 50, "DECOMP + OPT");
         butDecomp->callback(butDecomp_CB);
 
-	}
+        O_Partition = new Fl_Multiline_Input(PADDING, butDecomp->y() + butDecomp->h() + MARGIN, groupDecompSet->w(), 90);
+        O_Partition->wrap(1);
+        O_Partition->tooltip("The partition list of the decomposition.");
+
+        Fl_Group* groupFinderUtil = new Fl_Group(groupDecompSet->x()+groupDecompSet->w()+MARGIN, groupDecompSet->y(), groupDecompSet->w(), groupMainPara->h(), "Finder Utility");
+        groupFinderUtil->box(FL_THIN_UP_FRAME);
+
+        I_NodeStart = new Fl_Input(groupFinderUtil->x() + 120, groupFinderUtil->y() + MARGIN, 100, 25, "Start");
+        I_NodeStart->tooltip("For reachable points, the target point to be searched. For shortest path, the begin point to be started with.");
+
+        Fl_Button* butReachable = new Fl_Button(I_NodeStart->x() + I_NodeStart->w() + MARGIN, I_NodeStart->y(), 60, 25, "Reach");
+        butReachable->tooltip("Reachable points from [Start].");
+        butReachable->callback(Reach_CB);
+
+        I_NodeEnd = new Fl_Input(groupFinderUtil->x() + 120, I_NodeStart->y() + MARGIN * 2.5, 100, 25, "End");
+        I_NodeEnd->tooltip("For shortest path, the end point to be fininshed with.");
+
+        Fl_Button* butShortest = new Fl_Button(I_NodeEnd->x() + I_NodeEnd->w() + MARGIN, I_NodeEnd->y(), 60, 25, "Shortest");
+        butShortest->tooltip("Shortest Path from [Start] to [End].");
+        butShortest->callback(Shortest_CB);
+
+        groupFinderUtil->end();
+	
+        O_FinderUtil = new Fl_Multiline_Input(groupFinderUtil->x(), groupFinderUtil->y()+groupFinderUtil->h()+MARGIN,groupFinderUtil->w(), 150);
+        O_FinderUtil->wrap(1);
+
+    }
 	win->end();
 	win->show(argc, argv);
 	return(Fl::run());

@@ -13,7 +13,7 @@ double aw = 0;
 GraphDecomp::GraphDecomp(int _n, string _mainDir, string _subDir) :
 	n(_n), mainDir(_mainDir), subDir(_subDir)
 {
-	ResetSubFolder();
+	//ResetSubFolder();
 }
 
 void GraphDecomp::ResetSubFolder() {
@@ -23,7 +23,7 @@ void GraphDecomp::ResetSubFolder() {
 	system(command_md.c_str());
 }
 
-void GraphDecomp::Decomp(DecompSol sol) {
+string GraphDecomp::Decomp(DecompSol sol) {
 	fstream fs(mainDir, fstream::in);
 	if (!fs) error("Cannot open main graph file!");
 	
@@ -32,8 +32,8 @@ void GraphDecomp::Decomp(DecompSol sol) {
 
 	ev = decomp.Evaluate();
 	aw = decomp.GetAllWeights();
-
-	cout << "评估：" << ev << '/' << aw << '=' << ev / aw << endl;
+	
+	return decomp.OuputPartitions();
 }
 
 void GraphDecomp::Optimize() {
@@ -50,12 +50,12 @@ bool GraphDecomp::Check() {
 		;
 }
 
-void GraphDecomp::ReachablePoints(int node) {
+string GraphDecomp::ReachablePoints(int node) {
 	Finder nfd(subDir);
-	nfd.ReachableNodes(node);
+	return nfd.ReachableNodes(node);
 }
 
-double GraphDecomp::ShortestPath(int start, int end) {
+string GraphDecomp::ShortestPath(int start, int end) {
 	Finder pfd(subDir);
 	return pfd.ShortestPath(start, end);
 }
@@ -319,7 +319,7 @@ void Decomposer::Kerninghan_Lin() {
 	allocateIsoNodes();
 
 	// 输出分配情况作为验证文件
-	OuputPartitions();
+	// OuputPartitions();
 
 	// 连通子图输出
 	outputSubAdjGraphs();
@@ -338,17 +338,22 @@ void Decomposer::allocateIsoNodes() {
 		partitions.push(isoSet);
 }
 
-void Decomposer::OuputPartitions() const {
+string Decomposer::OuputPartitions() const {
+	stringstream ss;
 	queue<set<int>> outputPartq = partitions;
 	fstream partfs(subDir + "\\partitions.txt", fstream::out);
 	while (!outputPartq.empty()) {
 		set<int> s = outputPartq.front();
 		outputPartq.pop();
-		for (auto n : s)
+		for (auto n : s) {
 			partfs << n << ' ';
+			ss << n << ' ';
+		}
 		partfs << endl;
+		ss << endl;
 	}
 	partfs.close();
+	return ss.str();
 }
 
 void Decomposer::outputSubAdjGraphs() const {
@@ -589,23 +594,23 @@ void Finder::loadSubgraph(fileNo fn) {
 	subGraphs[fn] = fu;
 }
 
-void Finder::prtReachableNodes() const {
+string Finder::prtReachableNodes() const {
 	// 打印可达节点
-	cout << "可达节点数目：" << reachableNodes.size() << endl;
+	stringstream ss;
 	for (auto i = reachableNodes.begin(); i != reachableNodes.end(); ++i)
-		cout << *i << ' ';
-	cout << endl;
+		ss << *i << ' ';
+	ss << endl;
+	return ss.str();
 }
 
-void Finder::ReachableNodes(int beg) {
+string Finder::ReachableNodes(int beg) {
 	// BFS 寻找可达节点
 	queue<pair<fileNo, queue<int>>> visitFileQ;		// 文件访问队列
 	fileNo init = findStoredFile(beg);
 	if (init <= 0) {
 		if (init == 0)								// 没有被存储 
-			error("Node " + to_string(beg) + " is not stored!");
-		prtReachableNodes();
-		return;										// 或者是孤立节点
+			return "Node " + to_string(beg) + " is not stored!";
+		return "";										// 或者是孤立节点
 	}
 	visitFileQ.push(make_pair(init, queue<int>({ beg })));
 	bool flag = true;								// 自身开始不作为可达节点
@@ -650,21 +655,21 @@ void Finder::ReachableNodes(int beg) {
 			visitFileQ.push(m);
 	}
 
-	prtReachableNodes();
+	return "Num of Nodes:" + to_string(reachableNodes.size()) + '\n' + prtReachableNodes();
 }
 
 void Finder::prtPath(int cur, int target, int finish) {
 	if (cur != target) prtPath(prev[cur], target, finish);
-	cout << cur << (cur == finish ? "\n" : "->");
+	pathss << cur << (cur == finish ? "\n" : "->");
 }
 
-double Finder::ShortestPath(int start, int end) {
+string Finder::ShortestPath(int start, int end) {
 	// dijkstra
 	fileNo fin = findStoredFile(end);
 
 	if (fin == 0){
 		error("Node " + to_string(end) + " is not stored!");
-		return INF;
+		return "INF";
 	}
 
 	distance[start] = 0;
@@ -678,11 +683,11 @@ double Finder::ShortestPath(int start, int end) {
 	fileNo init = findStoredFile(start);
 	if (init <= 0) {
 		if (init == 0)								// 没有被存储 
-			error("Node " + to_string(start) + " is not stored!");
-		return INF;									// 或者是孤立节点
+			return "Node " + to_string(start) + " is not stored!";
+		return "INF";									// 或者是孤立节点
 	}
 	if (findStoredFile(end) == 0)
-		error("Node " + to_string(end) + " is not stored!"); // 没有被存储 
+		return "Node " + to_string(end) + " is not stored!"; // 没有被存储 
 
 	visitFileQ.push(make_pair(init, queue<int>({ start })));
 
@@ -722,13 +727,13 @@ double Finder::ShortestPath(int start, int end) {
 	}
 
 	if (distance.find(end) == distance.end()) {
-		error("Two nodes are not connected!");
-		return INF;
+		return "Two nodes are not connected!";
 	}
 
+	pathss.clear();
 	prtPath(end, start, end);
 
-	return distance[end];
+	return "Length:" + to_string(distance[end]) + '\n' + pathss.str();
 }
 
 Finder::~Finder() = default;

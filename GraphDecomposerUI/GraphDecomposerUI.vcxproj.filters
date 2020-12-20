@@ -21,18 +21,12 @@
     <ClCompile Include="..\GraphDecomp\GraphDecomp.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\GUIHeader\Graph.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\GraphDecomp\GraphDecomp.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\GUIHeader\GUI_facilities.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="..\GUIHeader\Point.h">
+    <ClInclude Include="..\GUI_facilities.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

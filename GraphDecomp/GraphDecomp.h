@@ -19,7 +19,7 @@
 	2020 / 12 / 13 ~ 2020 / 12 / 17	分割算法错误，发行终止。
 	2020 / 12 / 18 ~ 2020 / 12 / 19	重新编写，第二个可用版本
 	2020 / 12 / 19 ~ 2020 / 12 / 20	继续优化
-	2020 / 12 / 20 ~				开发图形界面
+	2020 / 12 / 20 ~ 2020 / 12 / 20	开发图形界面
 	2020 / 12 / 27	23:59			截止时间
 */
 
@@ -402,7 +402,7 @@ public:
 	- 我们将挑选若干自动生成的图，对比大家生成的权重之和值——
 		【在结果正确的前提下，计算权重之和越小，分数越高。】
 	*/
-	void Decomp(DecompSol sol);
+	string Decomp(DecompSol sol);
 	/* (2) 优化子图存储
 	上述图分割算法导致分割成的多个子图之间存在重复的节点，请设计一个方法，使
 	- 多个子图文件中分别载入程序后，不存在重复的节点
@@ -414,10 +414,10 @@ public:
 	bool Check();
 	/* (3) 子图上算法 */
 	// - 指定一个点，列出计算所有经有向边可达的节点
-	void ReachablePoints(int node);
+	string ReachablePoints(int node);
 	// - 指定两个点，输出最短路径
 	// 如果指定的节点不存在，报错即可
-	double ShortestPath(int start, int end);
+	string ShortestPath(int start, int end);
 
 	// 重设子文件夹
 	void ResetSubFolder();
@@ -469,7 +469,7 @@ public:
 	void Kerninghan_Lin();
 
 	// 输出节点分配，便于验证
-	void OuputPartitions() const;
+	string OuputPartitions() const;
 
 	// 评估
 	double Evaluate();
@@ -552,9 +552,9 @@ public:
 	Finder(string _subDir);
 	~Finder();
 	// 可达节点
-	void ReachableNodes(int node);
+	string ReachableNodes(int node);
 	// 最短路径
-	double ShortestPath(int start, int end);
+	string ShortestPath(int start, int end);
 private:
 	map < fileNo, FileUnit > subGraphs;		// 子图
 	//queue<pair<fileNo, queue<int>>> visitFileQueue;			// 文件访问队列以及需要访问的节点
@@ -562,13 +562,15 @@ private:
 	set<int> reachableNodes;				// 可达点集合
 	map<int, double> distance;				// 距离映射
 
+	stringstream pathss;					// 路径流
+
 	// 寻找开始为节点的存储文件
 	fileNo findStoredFile(int beg);
 	// 加载子图
 	void loadSubgraph(fileNo fn);
 
 	// 打印可达节点
-	void prtReachableNodes() const;
+	string prtReachableNodes() const;
 
 	// 打印路径
 	void prtPath(int cur, int target, int finish);

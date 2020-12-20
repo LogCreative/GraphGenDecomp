@@ -142,13 +142,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\GraphDecomp\GraphDecomp.cpp" />
-    <ClCompile Include="..\GUIHeader\Graph.cpp" />
     <ClCompile Include="Decomposer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\GraphDecomp\GraphDecomp.h" />
-    <ClInclude Include="..\GUIHeader\GUI_facilities.h" />
-    <ClInclude Include="..\GUIHeader\Point.h" />
+    <ClInclude Include="..\GUI_facilities.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
