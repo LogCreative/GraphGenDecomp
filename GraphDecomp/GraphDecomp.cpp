@@ -204,6 +204,21 @@ int Decomposer::getMaxDinSet(set<int>& S) {
 	return zmax;
 }
 
+pair<int, int> Decomposer::getMaxGainPair(set<int>& A, set<int>& B) {
+	pair<int, int> selecPair;
+	double gainmax = - INFINITY;
+	for (auto a : A) {
+		for (auto b : B) {
+			double gaintmp = diffCol[a] + diffCol[b] - 2 * getCostValue(a, b);
+			if (gaintmp > gainmax) {
+				selecPair = make_pair(a, b);
+				gainmax = gaintmp;
+			}
+		}
+	}
+	return selecPair;
+}
+
 void Decomposer::optimizeParts(set<int>& A, set<int>& B) {
 	if (sol != rough) {
 		double G = INF;
@@ -222,8 +237,14 @@ void Decomposer::optimizeParts(set<int>& A, set<int>& B) {
 				if (sol == ll) {
 					amax = getMaxDinSet(Ap);
 					bmax = getMaxDinSet(Bp);
-					gainLocal = diffCol[amax] + diffCol[bmax] - 2 * getCostValue(amax, bmax);
 				}
+				else if (sol == kl) {
+					 // 选择三个备选即可基本取优
+					pair<int, int> selecPair = getMaxGainPair(Ap, Bp);
+					amax = selecPair.first;
+					bmax = selecPair.second;
+				}
+				gainLocal = diffCol[amax] + diffCol[bmax] - 2 * getCostValue(amax, bmax);
 				ak.push_back(amax);
 				bk.push_back(bmax);
 				Ap.erase(amax);

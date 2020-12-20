@@ -3,14 +3,28 @@
 int main(int argc, char* argv[]) {
 #ifdef _DEBUG
 	for (int i = 10; i < 110; i = i + 10) {
-		//int i = 100;
+		//int i = 10;
 		cout << "-------------------------" << endl;
+		GraphDecomp gdr(i, "../GraphGen/G.txt", "./subGraph/");
+		gdr.Decomp(rough);
+		//gdr.Optimize();
+		//cout << (gdr.Check() ? "true" : "false") << endl;
+		//gdr.ReachablePoints(2);
+		//cout << "路径长度：" << gdr.ShortestPath(2, 99) << endl;
+		//cout << "-------------------------" << endl;
 		GraphDecomp gd(i, "../GraphGen/G.txt", "./subGraph/");
 		gd.Decomp(ll);
-		gd.Optimize();
-		cout << (gd.Check() ? "true" : "false") << endl;
-		gd.ReachablePoints(2);
-		cout << "路径长度：" << gd.ShortestPath(2, 99) << endl; 
+		//gd.Optimize();
+		//cout << (gd.Check() ? "true" : "false") << endl;
+		//gd.ReachablePoints(2);
+		//cout << "路径长度：" << gd.ShortestPath(2, 99) << endl; 
+		//cout << "-------------------------" << endl;
+		GraphDecomp gdk(i, "../GraphGen/G.txt", "./subGraph/");
+		gdk.Decomp(kl);
+		//gdk.Optimize();
+		//cout << (gdk.Check() ? "true" : "false") << endl;
+		//gdk.ReachablePoints(2);
+		//cout << "路径长度：" << gdk.ShortestPath(2, 99) << endl;
 	}
 	
 #else
