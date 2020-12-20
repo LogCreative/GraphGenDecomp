@@ -60,17 +60,20 @@ void PickDir_CB(Fl_Widget*, void*) {
 void butDecomp_CB(Fl_Widget*, void*) {
     GraphDecomp gd(parseInt(I_DecompSize->value()), G_Mfilename->value(), G_Sfilename->value());
     DecompSol _sol;
+    
     if (strcmp(I_DecompAlg->text(),"hardest")==0) _sol = kl;
     else if (strcmp(I_DecompAlg->text(),"medium")==0) _sol = ll;
     else if (strcmp(I_DecompAlg->text(),"order")==0) _sol = rough;
+    R_PREFIX = I_MainNodeModifier->value()[0];
+    if (strcmp(I_MainDilimeter->text(), "space") == 0) R_DILIMETER = ' ';
+    else if (strcmp(I_MainDilimeter->text(), "comma") == 0)
+        R_DILIMETER = ',';
+    DECOMPFIL = I_SubFileModifier->value();
+    OPTFIL = I_OptFileModifier->value();
+
     gd.Decomp(_sol);
     string effstr = to_string(ev) + "/" + to_string(aw);
-    boxEff->label(effstr.c_str());
-
-}
-
-void butOptimize_CB(Fl_Widget*, void*) {
-
+    //boxEff->label(effstr.c_str());
 }
 
 int main(int argc, char** argv) {
@@ -167,9 +170,6 @@ int main(int argc, char** argv) {
 
         Fl_Button* butDecomp = new Fl_Button(boxEff->x() + boxEff->w() + MARGIN, groupDecompSet->y() + groupDecompSet->h() + MARGIN, 100, 50, "DECOMPOSE");
         butDecomp->callback(butDecomp_CB);
-
-        Fl_Button* butOptimize = new Fl_Button(butDecomp->x()+butDecomp->w()+MARGIN,butDecomp->y(), 100, 50, "OPTIMIZE");
-        butOptimize->callback(butOptimize_CB);
 
 	}
 	win->end();
