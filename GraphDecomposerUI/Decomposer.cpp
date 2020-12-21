@@ -207,7 +207,7 @@ int main(int argc, char** argv) {
         effp = new progressbar(PADDING, groupDecompSet->y() + groupDecompSet->h() + MARGIN, 150, 20, 0);
 
         boxEff = new Fl_Box(PADDING, groupDecompSet->y() + groupDecompSet->h() + MARGIN*2, 150, 50, "-/-");
-        boxEff->tooltip("Cut edge loss / Total edge weight");
+        boxEff->tooltip("Homogeneity Check Status  Cut edge loss / Total edge weight");
 
         Fl_Button* butDecomp = new Fl_Button(boxEff->x() + boxEff->w() + MARGIN, groupDecompSet->y() + groupDecompSet->h() + MARGIN, 140, 50, "DECOMP + OPT");
         butDecomp->callback(butDecomp_CB);

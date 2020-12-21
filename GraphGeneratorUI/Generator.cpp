@@ -3,7 +3,7 @@
 #include "../GUI_facilities.h"
 #include "../GraphGen/GraphGen.h"
 
-Fl_Input* G_Mfilename = NULL;
+Fl_Input* G_MfilenameG = NULL;
 Fl_Choice* I_NodeType = NULL;
 Fl_Choice* I_EdgeType = NULL;
 Fl_Choice* I_GraphNum = NULL;
@@ -19,23 +19,23 @@ int parseInt(string str) {
     return n;
 }
 
-void PickFile_CB(Fl_Widget*, void*) {
+void PickFileG_CB(Fl_Widget*, void*) {
     // Create native chooser
     Fl_Native_File_Chooser native;
     native.title("Pick a file");
     native.type(Fl_Native_File_Chooser::BROWSE_SAVE_FILE);
     native.filter("Text File	*.txt");
-    native.preset_file(G_Mfilename->value());
+    native.preset_file(G_MfilenameG->value());
     // Show native chooser
     switch (native.show()) {
     case -1: fprintf(stderr, "ERROR: %s\n", native.errmsg()); break;	// ERROR
     case  1: fprintf(stderr, "*** CANCEL\n"); fl_beep(); break;		// CANCEL
     default: 								// PICKED FILE
         if (native.filename()) {
-            G_Mfilename->value(native.filename());
+            G_MfilenameG->value(native.filename());
         }
         else {
-            G_Mfilename->value("NULL");
+            G_MfilenameG->value("NULL");
         }
         break;   
     }
@@ -55,7 +55,7 @@ void Gen_CB(Fl_Widget*, void*) {
     if (strcmp(I_GraphNum->text(), "connected") == 0) _it = Single;
     else if (strcmp(I_GraphNum->text(), "multiple connected") == 0) _it = Multi;
 
-    GraphGen gg(G_Mfilename->value(), _nt, _et, _it);
+    GraphGen gg(G_MfilenameG->value(), _nt, _et, _it);
 
     if (strcmp(I_ModeChoice->text(), "new") == 0) gg.NewGraph(parseInt(I_LineCount->value()));
     else if (strcmp(I_ModeChoice->text(), "append") == 0) gg.AppendGraph(parseInt(I_LineCount->value()));
@@ -93,32 +93,32 @@ int main(int argc, char** argv) {
         boxGenTitle->labelsize(25);
         boxGenTitle->labelcolor(Color::blue);
 
-        G_Mfilename = new Fl_Input(PADDING + 110, boxGenTitle->y() + boxGenTitle->h() + MARGIN * 2, WIDTH - 2 * PADDING - 200, 25, "Output Graph File");
-        G_Mfilename->value(argc <= argn ? ".\\G.txt" : argv[argn]);
-        G_Mfilename->tooltip("Choose the output graph file.");
+        G_MfilenameG = new Fl_Input(PADDING + 110, boxGenTitle->y() + boxGenTitle->h() + MARGIN * 2, WIDTH - 2 * PADDING - 200, 25, "Output Graph File");
+        G_MfilenameG->value(argc <= argn ? ".\\G.txt" : argv[argn]);
+        G_MfilenameG->tooltip("Choose the output graph file.");
 
-        Fl_Button* butMainChooser = new Fl_Button(WIDTH - PADDING - 100, G_Mfilename->y(), 110, 25, "Pick Output File");
-        butMainChooser->callback(PickFile_CB);
+        Fl_Button* butMainChooser = new Fl_Button(WIDTH - PADDING - 100, G_MfilenameG->y(), 110, 25, "Pick Output File");
+        butMainChooser->callback(PickFileG_CB);
 
-        I_NodeType = new Fl_Choice(G_Mfilename->x(), G_Mfilename->y() + MARGIN * 2.5, 150, 25, "Node Type");
+        I_NodeType = new Fl_Choice(G_MfilenameG->x(), G_MfilenameG->y() + MARGIN * 2.5, 150, 25, "Node Type");
         I_NodeType->tooltip("The node number generated pattern.");
         I_NodeType->add("continuous");
         I_NodeType->add("discrete");
         I_NodeType->value(0);
 
-        I_EdgeType = new Fl_Choice(G_Mfilename->x(), I_NodeType->y() + MARGIN * 2.5, 150, 25, "Edge Type");
+        I_EdgeType = new Fl_Choice(G_MfilenameG->x(), I_NodeType->y() + MARGIN * 2.5, 150, 25, "Edge Type");
         I_EdgeType->tooltip("Choose whether the graph contains loops.");
         I_EdgeType->add("no loop");
         I_EdgeType->add("contains loop");
         I_EdgeType->value(0);
 
-        I_GraphNum = new Fl_Choice(G_Mfilename->x(), I_EdgeType->y() + MARGIN * 2.5, 150, 25, "Graph Type");
+        I_GraphNum = new Fl_Choice(G_MfilenameG->x(), I_EdgeType->y() + MARGIN * 2.5, 150, 25, "Graph Type");
         I_GraphNum->tooltip("Choose whether the graph is all connected or not.");
         I_GraphNum->add("connected");
         I_GraphNum->add("multiple connected");
         I_GraphNum->value(0);
 
-        I_ModeChoice = new Fl_Choice(G_Mfilename->x(), I_GraphNum->y() + MARGIN * 2.5, 150, 25, "File Mode");
+        I_ModeChoice = new Fl_Choice(G_MfilenameG->x(), I_GraphNum->y() + MARGIN * 2.5, 150, 25, "File Mode");
         I_ModeChoice->tooltip("The operation towards file.");
         I_ModeChoice->add("new");
         I_ModeChoice->add("append");

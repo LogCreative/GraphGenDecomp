@@ -7,7 +7,7 @@
 
 /* 开发记录：
 	2020 / 11 / 21 ~ 2020 / 11 / 25	开发命令行基本功能
-									开发图形界面
+	2020 / 12 / 21 ~ 2020 / 12 / 21	开发图形界面
 	2020 / 12 / 27	23:59			截止时间
 */
 
@@ -29,7 +29,7 @@ extern int MAX_CHILD;			// 最大孩子数
 /**********************头文件分离***********************/
 
 // 公共类
-class GraphCommon {
+class GraphCommonGen {
 public:
 	// 有向边的定义
 	struct edge {
@@ -68,7 +68,7 @@ protected:
 
 /**********************头文件分离结束***********************/
 
-class GraphGen: GraphCommon {
+class GraphGen: GraphCommonGen {
 public:
 	// 创建图生成器对象
 	GraphGen(string _directory,

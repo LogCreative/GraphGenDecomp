@@ -45,7 +45,7 @@ int main(int argc, char* argv[]) {
 	string _subDir = argv[3];
 	GraphDecomp gd(stoi(_n), _mainDir, _subDir);
 	string op = argv[4];
-	if (op == "-d") gd.Decomp();
+	if (op == "-d") gd.Decomp(kl);
 	else if (op == "-o") gd.Optimize();
 	else if (op == "-c") cout << (gd.Check() ? "Ò»ÖÂ" : "²»Ò»ÖÂ") << endl;
 	else if (op == "-r") gd.ReachablePoints(stoi(argv[5]));
