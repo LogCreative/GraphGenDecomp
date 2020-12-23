@@ -13,9 +13,13 @@
 // Tab Generator
 Fl_Input* G_MfilenameG = NULL;
 Fl_Choice* I_NodeType = NULL;
+Fl_Input* I_NodeIncre = NULL;
 Fl_Choice* I_EdgeType = NULL;
+Fl_Input* I_MaxChild = NULL;
 Fl_Choice* I_GraphNum = NULL;
+Fl_Input* I_MaxIsograph = NULL;
 Fl_Choice* I_ModeChoice = NULL;
+Fl_Input* I_NodeRatio = NULL;
 Fl_Input* I_LineCount = NULL;
 
 // Tab Decomposer
@@ -78,7 +82,14 @@ void Gen_CB(Fl_Widget*, void*) {
 
     GraphGen gg(G_MfilenameG->value(), _nt, _et, _it);
 
-    if (strcmp(I_ModeChoice->text(), "new") == 0) gg.NewGraph(parseInt(I_LineCount->value()));
+    MAX_INCREASEMENT = parseInt(I_NodeIncre->value());
+    MAX_CHILD = parseInt(I_MaxChild->value());
+    MAX_ISOGRAPH = parseInt(I_MaxIsograph->value());
+
+    double nodeRatio = atof(I_NodeRatio->value());
+
+    if (strcmp(I_ModeChoice->text(), "new") == 0)
+        gg.NewGraph(parseInt(I_LineCount->value()), ((nodeRatio < 0 || nodeRatio > 1) ? -1 : nodeRatio));
     else if (strcmp(I_ModeChoice->text(), "append") == 0) gg.AppendGraph(parseInt(I_LineCount->value()));
 
 }
@@ -161,6 +172,7 @@ void butDecomp_CB(Fl_Widget*, void*) {
 
     if (strcmp(I_DecompAlg->text(), "hardest") == 0) _sol = kl;
     else if (strcmp(I_DecompAlg->text(), "medium") == 0) _sol = ll;
+    else if (strcmp(I_DecompAlg->text(), "faster") == 0) _sol = onepass;
     else if (strcmp(I_DecompAlg->text(), "order") == 0) _sol = rough;
     R_PREFIX = strlen(I_MainNodeModifier->value()) == 0 ? '\0' : I_MainNodeModifier->value()[0];
 
@@ -245,11 +257,19 @@ int main(int argc, char** argv) {
             I_NodeType->add("discrete");
             I_NodeType->value(0);
 
+            I_NodeIncre = new Fl_Input(I_NodeType->x() + I_NodeType->w() + 200 + MARGIN, I_NodeType->y(), 100, 25, "Node Increasement");
+            I_NodeIncre->tooltip("In discrete node generated mode, the maximum increasement in the label of nodes.");
+            I_NodeIncre->value("100");
+
             I_EdgeType = new Fl_Choice(G_MfilenameG->x(), I_NodeType->y() + MARGIN * 2.5, 150, 25, "Edge Type");
             I_EdgeType->tooltip("Choose whether the graph contains loops.");
             I_EdgeType->add("no loop");
             I_EdgeType->add("contains loop");
             I_EdgeType->value(0);
+
+            I_MaxChild = new Fl_Input(I_EdgeType->x() + I_EdgeType->w() + 200 + MARGIN, I_EdgeType->y(), 100, 25, "Max Child Num");
+            I_MaxChild->tooltip("The maximum amout of children for every node.");
+            I_MaxChild->value("5");
 
             I_GraphNum = new Fl_Choice(G_MfilenameG->x(), I_EdgeType->y() + MARGIN * 2.5, 150, 25, "Graph Type");
             I_GraphNum->tooltip("Choose whether the graph is all connected or not.");
@@ -257,14 +277,23 @@ int main(int argc, char** argv) {
             I_GraphNum->add("multiple connected");
             I_GraphNum->value(0);
 
+            I_MaxIsograph = new Fl_Input(I_GraphNum->x() + I_GraphNum->w() + 200 + MARGIN, I_GraphNum->y(), 100, 25, "Max Isograph Num");
+            I_MaxIsograph->tooltip("The maximum number of isographs in the graph.");
+            I_MaxIsograph->value("5");
+
             I_ModeChoice = new Fl_Choice(G_MfilenameG->x(), I_GraphNum->y() + MARGIN * 2.5, 150, 25, "File Mode");
             I_ModeChoice->tooltip("The operation towards file.");
             I_ModeChoice->add("new");
             I_ModeChoice->add("append");
             I_ModeChoice->value(0);
 
+            I_NodeRatio = new Fl_Input(I_ModeChoice->x() + I_ModeChoice->w() + 200 + MARGIN, I_ModeChoice->y(), 100, 25, "Node / Lines");
+            I_NodeRatio->tooltip("Only applied for NEW file Mode. The node line proportion in the file. Leave it a number bigger than 1 or less than 0 if you want it randomrized.");
+            I_NodeRatio->value("-1.0");
+
             I_LineCount = new Fl_Input(I_ModeChoice->x(), I_ModeChoice->y() + MARGIN * 2.5, 150, 25, "Line Count");
             I_LineCount->tooltip("Refresh file with # of lines or append file with # of lines.");
+            I_LineCount->value("100");
 
             Fl_Button* butGen = new Fl_Button(I_LineCount->x(), I_LineCount->y() + MARGIN * 2.5, 150, 25, "Generate");
             butGen->callback(Gen_CB);
@@ -332,6 +361,7 @@ int main(int argc, char** argv) {
             I_DecompAlg->tooltip("The hardness of dividing algorithm (Kerninghan-Lin)");
             I_DecompAlg->add("hardest");
             I_DecompAlg->add("medium");
+            I_DecompAlg->add("faster");
             I_DecompAlg->add("order");
             I_DecompAlg->value(0);
 

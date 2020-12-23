@@ -250,7 +250,7 @@ void Decomposer::optimizeParts(set<int>& A, set<int>& B) {
 				int amax;
 				int bmax;
 				double gainLocal;
-				if (sol == ll) {
+				if (sol == onepass || sol == ll) {
 					amax = getMaxDinSet(Ap);
 					bmax = getMaxDinSet(Bp);
 				}
@@ -285,7 +285,7 @@ void Decomposer::optimizeParts(set<int>& A, set<int>& B) {
 				B.erase(bk[l]);
 				A.insert(bk[l]);
 			}
-		} while (G > 0);
+		} while (G > 0 || sol == onepass);
 	}
 }
 
@@ -295,7 +295,7 @@ void Decomposer::Kerninghan_Lin() {
 	initialAdjMat();
 
 	// 初始化损失矩阵
-	initialCostMat();
+ 	initialCostMat();
 
 	// 分配连通节点
 	set<int> connNodes;

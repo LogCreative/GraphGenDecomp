@@ -10,12 +10,18 @@ GraphGen::GraphGen(string _directory, nodeType _nt, edgeType _et, isoType _it):
 	
 }
 
-void GraphGen::NewGraph(int x) {
+void GraphGen::NewGraph(int x, double prop) {
 	fstream fs(directory, fstream::out);
-	int nodeLine = x * randomRatio();
+	int nodeLine = x * randomRatio();		// 不论是否被指定，都需要这么多的节点数。
 	nodeSet.clear();
-	genNode(nodeLine, fs);
-	genEdge(x - nodeLine, fs);
+	if (prop < 0) { 
+		genNode(nodeLine, fs, -1);
+		genEdge(x - nodeLine, fs);
+	}
+	else {
+		genNode(nodeLine, fs, x * prop);
+		genEdge(x - (int)x * prop, fs);
+	}
 	fs.close();
 }
 
@@ -33,12 +39,15 @@ void GraphGen::AppendGraph(int y) {
 	afs.close();
 }
 
-void GraphGen::genNode(int quantity, fstream& fs) {
+void GraphGen::genNode(int quantity, fstream& fs, int oline) {
 	switch (nt) {
 	case continuous:
 		for (int i = 0; i < quantity; ++i) {
 			nodeSet.insert(i);
-			fs << '<' << i << ">\n";
+			if (oline == -1 || oline > 0) {
+				fs << '<' << i << ">\n";
+				if (oline != -1) --oline;
+			}
 		}
 		max_node = quantity - 1;
 		break;
@@ -47,7 +56,10 @@ void GraphGen::genNode(int quantity, fstream& fs) {
 		for (int i = 0; i < quantity; ++i) {
 			cur += randomRatio() * MAX_INCREASEMENT;
 			nodeSet.insert(cur);
-			fs << '<' << cur << ">\n";
+			if (oline == -1 || oline > 0) {
+				fs << '<' << i << ">\n";
+				if (oline != -1) --oline;
+			}
 		}
 		max_node = cur;
 		break;

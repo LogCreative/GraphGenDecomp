@@ -361,13 +361,6 @@ public:
 		isolateNodes();
 	}
 
-	// 节点是否空边
-	bool isEmptyNodeEdge(map<int, vector<edge>>& adjG, int node) {
-		if (adjG[node].empty())
-			return true;
-		return false;
-	}
-
 	set<int> isoNodes;			// 孤立节点
 	map<int, vector<edge>> adjListGraph;	// 邻接表图，不包含孤立节点的连通部分，连通点可能为发出空边集合。
 private:
@@ -401,7 +394,7 @@ public:
 	set<int> nodeVisited;				// 访问过的节点集
 };
 
-enum DecompSol { rough, ll, kl };		// 分解方案类型
+enum DecompSol { rough, onepass, ll, kl };		// 分解方案类型
 
 class GraphDecomp : GraphCommon {
 public:
@@ -473,6 +466,7 @@ protected:
 
 };
 
+// 值处理器父类
 class ValueProcessor : public Processor {
 public:
 	// 评估
@@ -574,7 +568,7 @@ public:
 	// 不破坏文件的前提下，评估
 	void EvaluateWeights();
 private:
-	string mainDir;
+	string mainDir;							// 主文件
 	bool raw;								// 检查文件是否是外部文件
 	vector<string> decomp_files;			// 分解后的子图
 
