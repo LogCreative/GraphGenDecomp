@@ -20,6 +20,7 @@
 	2020 / 12 / 18 ~ 2020 / 12 / 19	重新编写，第二个可用版本
 	2020 / 12 / 19 ~ 2020 / 12 / 20	继续优化
 	2020 / 12 / 20 ~ 2020 / 12 / 20	开发图形界面
+	2020 / 12 / 23 ~ 2020 / 12 / 	评估器
 	2020 / 12 / 27	23:59			截止时间
 */
 
@@ -27,6 +28,20 @@
 （1）提交到educoder上，
 （2）在助教指定的时间来找助教，生成图，针对若干已有的图进行计算，助教记录结果，检查代码、生成的子图并问问题
 （3）助教核对前期所有作业 / 成绩记录
+*/
+
+/*
+各位同学，我们大作业初步的检查流程如下：
+
+检查时间：2020年12月26日~2021年1月3日（每天检查约12人，部分日期不检查）
+		  助教会提前发布检查时间段和对应的学号，请根据自己时间段前来检查，特殊情况请自行找另一个时间段的同学调换顺序
+检查地点：【助教另行通知】
+检查如下功能：
+		  1：利用图生成工具生成10个图，检查格式正确性（20%）
+		  2：提供若干个小型测试用例（节点数与边数和小于300），检查子图及子图边界权重（20%）
+		  3：提供若干个中大规模的测试用例（节点数与边数和大于300，小于10000），检查图分割正确性，记录运行结果（20%）
+		  4：根据测试用例，检查最短路径（15%）、图可达性（15%）
+		  5：审查代码并提问（10%，查问代码内容，必要情况下删掉部分代码，要求限时复现）
 */
 
 /*
@@ -412,10 +427,8 @@ public:
 	// - 设计一个算法，将多个子图合并及删除虚节点后，检查与原图A一致。输出分割边的权重和。
 	// - 该问与上一问合并
 	bool Check();
-	// 仅检查一致性
-	bool OnlyCheck();
 	// 评估：检查并更新权重信息
-	string Evaluate();
+	pair<bool, string> Evaluate(bool _raw);
 	/* (3) 子图上算法 */
 	// - 指定一个点，列出计算所有经有向边可达的节点
 	string ReachablePoints(int node);
@@ -538,7 +551,7 @@ private:
 // 检查器
 class Checker : Processor {
 public:
-	Checker(string _subDir, string _filter = "");
+	Checker(string _subDir, string _filter = "", bool _raw = false);
 	~Checker();
 private:
 	// 比较集合
@@ -552,7 +565,7 @@ private:
 
 class Evaluator : public ValueProcessor {
 public:
-	Evaluator(string _mainDir, string _subDir);
+	Evaluator(string _mainDir, string _subDir, bool _raw);
 	~Evaluator();
 
 	// 检查
@@ -562,6 +575,7 @@ public:
 	void EvaluateWeights();
 private:
 	string mainDir;
+	bool raw;								// 检查文件是否是外部文件
 	vector<string> decomp_files;			// 分解后的子图
 
 	// 得到分配信息

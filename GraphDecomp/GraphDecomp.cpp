@@ -50,15 +50,10 @@ bool GraphDecomp::Check() {
 		;
 }
 
-bool GraphDecomp::OnlyCheck() {
-	Evaluator ev(mainDir, subDir);
-	return ev.Check();
-}
-
-string GraphDecomp::Evaluate() {
-	Evaluator ev(mainDir, subDir);
+pair<bool, string> GraphDecomp::Evaluate(bool _raw) {
+	Evaluator ev(mainDir, subDir, _raw);
 	ev.EvaluateWeights();
-	return ev.OuputPartitions();
+	return make_pair(ev.Check(), ev.OuputPartitions());
 }
 
 string GraphDecomp::ReachablePoints(int node) {
@@ -515,8 +510,8 @@ void Optimizer::Optimize() {
 Optimizer::~Optimizer() = default;
 
 
-Checker::Checker(string _subDir, string _filter) {
-	if (_filter == "") {
+Checker::Checker(string _subDir, string _filter, bool _raw) {
+	if (_filter == "") {			// 如果没有过滤器，一定是外部文件
 		fstream fs(_subDir, fstream::in);
 		readRawFile(fs);
 		fs.close();
@@ -528,7 +523,10 @@ Checker::Checker(string _subDir, string _filter) {
 		getFiles(subDir, fileExtension, files, _filter);
 		for (auto f = files.begin(); f != files.end(); ++f) {
 			fstream cf(*f, fstream::in);
-			readFile(cf, true);
+			if (_raw)
+				readRawFile(cf);
+			else
+				readFile(cf, true);
 			cf.close();
 		}
 	}
@@ -575,8 +573,8 @@ bool operator==(Checker const& l, Checker const& r) {
 
 Checker::~Checker() = default;
 
-Evaluator::Evaluator(string _mainDir, string _subDir) :
-	mainDir(_mainDir)
+Evaluator::Evaluator(string _mainDir, string _subDir, bool _raw):
+	mainDir(_mainDir), raw(_raw)
 {
 	subDir = _subDir;
 }
@@ -586,6 +584,7 @@ void Evaluator::getPartition() {
 
 	map<int, fileNo> beginNodes;
 	map<int, fileNo> leafNodes;
+	map<int, fileNo> lockedNodes;		// 被锁定的分配
 
 	for (auto f = decomp_files.begin(); f != decomp_files.end(); ++f) {
 		fstream fs(*f, fstream::in);
@@ -596,7 +595,13 @@ void Evaluator::getPartition() {
 			getline(fs, rl);
 			if (rl == "") break;
 			stringstream rs(rl);
-			if (find(rl.begin(), rl.end(), DILIMETER) != rl.end()) {
+			if (find(rl.begin(), rl.end(), DILIMETER) == rl.end()) {
+				// 如果是以节点形式存储的，就按照对应文件分配
+				node n;
+				rs >> n;
+				lockedNodes[n.data] = curFile;
+			}
+			else {
 				edge e;
 				rs >> e;
 				if (beginNodes.find(e.start) == beginNodes.end())
@@ -613,11 +618,15 @@ void Evaluator::getPartition() {
 	for (auto b : beginNodes) {
 		if (leafNodes.find(b.first) != leafNodes.end())
 			intersect.insert(b.first);
-		fileNodeMap[b.second].insert(b.first);
+		if (lockedNodes.find(b.first) == lockedNodes.end())
+			fileNodeMap[b.second].insert(b.first);
 	}
 	for (auto l : leafNodes)
-		if (intersect.find(l.first) == intersect.end())
+		if (intersect.find(l.first) == intersect.end()
+			&& lockedNodes.find(l.first) == lockedNodes.end())
 			fileNodeMap[l.second].insert(l.first);
+	for (auto n : lockedNodes)
+		fileNodeMap[n.second].insert(n.first);
 
 	// 输入分配结果
 	for (auto fn = fileNodeMap.begin(); fn != fileNodeMap.end(); ++fn)
@@ -627,17 +636,19 @@ void Evaluator::getPartition() {
 
 bool Evaluator::Check() {
 	Checker orignalChecker(mainDir);
-	Checker decompChecker(subDir, DECOMPFIL);
+	Checker decompChecker(subDir, DECOMPFIL, raw);
 	return orignalChecker == decompChecker;
 }
 
 void Evaluator::EvaluateWeights() {
-
 	getFiles(subDir, ".txt", decomp_files, DECOMPFIL);
 
 	for (auto f = decomp_files.begin(); f != decomp_files.end(); ++f) {
 		fstream rfs(*f, fstream::in);
-		readRawFile(rfs);
+		if (raw)
+			readRawFile(rfs);
+		else
+			readFile(rfs);
 		rfs.close();
 	}
 
