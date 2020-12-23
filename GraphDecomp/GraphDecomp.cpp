@@ -50,6 +50,17 @@ bool GraphDecomp::Check() {
 		;
 }
 
+bool GraphDecomp::OnlyCheck() {
+	Evaluator ev(mainDir, subDir);
+	return ev.Check();
+}
+
+string GraphDecomp::Evaluate() {
+	Evaluator ev(mainDir, subDir);
+	ev.EvaluateWeights();
+	return ev.OuputPartitions();
+}
+
 string GraphDecomp::ReachablePoints(int node) {
 	Finder nfd(subDir);
 	return nfd.ReachableNodes(node);
@@ -132,7 +143,7 @@ Decomposer::Decomposer(int _n, fstream& fs, string _subDir, DecompSol _sol) {
 	Kerninghan_Lin();
 }
 
-void Decomposer::initialAdjMat() {
+void ValueProcessor::initialAdjMat() {
 	adjMat.clear();
 	for (auto n : adjListGraph) {
 		nodeStruct ns(n.first);
@@ -142,7 +153,7 @@ void Decomposer::initialAdjMat() {
 	}
 }
 
-void Decomposer::initialCostMat() {
+void ValueProcessor::initialCostMat() {
 	costMat.clear();
 	for (auto i : adjMat) 
 		for (auto j : adjMat) 
@@ -152,7 +163,7 @@ void Decomposer::initialCostMat() {
 				+ adjMat[j.first].getConnWeight(i.first);
 }
 
-double Decomposer::getCostValue(int i, int j) {
+double ValueProcessor::getCostValue(int i, int j) {
 	if (costMat.find(i) == costMat.end() ||
 		costMat[i].find(j) == costMat[i].end())
 		return 0;
@@ -249,7 +260,6 @@ void Decomposer::optimizeParts(set<int>& A, set<int>& B) {
 					bmax = getMaxDinSet(Bp);
 				}
 				else if (sol == kl) {
-					 // 选择三个备选即可基本取优
 					pair<int, int> selecPair = getMaxGainPair(Ap, Bp);
 					amax = selecPair.first;
 					bmax = selecPair.second;
@@ -338,7 +348,7 @@ void Decomposer::allocateIsoNodes() {
 		partitions.push(isoSet);
 }
 
-string Decomposer::OuputPartitions() const {
+string ValueProcessor::OuputPartitions() const {
 	stringstream ss;
 	queue<set<int>> outputPartq = partitions;
 	fstream partfs(subDir + "\\partitions.txt", fstream::out);
@@ -374,7 +384,7 @@ void Decomposer::outputSubAdjGraphs() const {
 	}
 }
 
-double Decomposer::Evaluate(){
+double ValueProcessor::Evaluate(){
 	// 只需要考虑cost
 	// 每两个子集进行比较
 	double loss = 0;
@@ -398,7 +408,7 @@ double Decomposer::Evaluate(){
 	return loss;
 }
 
-double Decomposer::GetAllWeights() {
+double ValueProcessor::GetAllWeights() {
 	double total = 0;
 
 	// 所有节点 = 孤立节点（无连接权重） + 连通节点
@@ -421,11 +431,11 @@ Optimizer::Optimizer(int _n, string _subDir) {
 	SUFFIX = OPTFIL;
 
 	// 遍历文件
-	getFiles(_subDir, ".txt", files, DECOMPFIL);
+	getFiles(_subDir, ".txt", decomp_files, DECOMPFIL);
 }
 
 void Optimizer::getNodesAllocation() {
-	for (auto f = files.begin(); f != files.end(); ++f) {
+	for (auto f = decomp_files.begin(); f != decomp_files.end(); ++f) {
 		fstream subfs(*f, fstream::in);
 		fileNo cur = parseFileInt(*f);
 		FileUnit fu;
@@ -441,7 +451,7 @@ void Optimizer::allocateEdges() {
 	map<fileNo, set<int>> isoNodes;
 	map<fileNo, vector<edge>> writingFileMap;
 	set<int> startNodes;
-	for (auto f = files.begin(); f != files.end(); ++f) {
+	for (auto f = decomp_files.begin(); f != decomp_files.end(); ++f) {
 		fstream ifs(*f, fstream::in);
 		fileNo curFile = parseFileInt(*f);
 
@@ -565,14 +575,93 @@ bool operator==(Checker const& l, Checker const& r) {
 
 Checker::~Checker() = default;
 
+Evaluator::Evaluator(string _mainDir, string _subDir) :
+	mainDir(_mainDir)
+{
+	subDir = _subDir;
+}
+
+void Evaluator::getPartition() {
+	map<fileNo, set<int>> fileNodeMap;
+
+	map<int, fileNo> beginNodes;
+	map<int, fileNo> leafNodes;
+
+	for (auto f = decomp_files.begin(); f != decomp_files.end(); ++f) {
+		fstream fs(*f, fstream::in);
+		fileNo curFile = parseFileInt(*f);
+
+		while (!fs.eof()) {
+			string rl;
+			getline(fs, rl);
+			if (rl == "") break;
+			stringstream rs(rl);
+			if (find(rl.begin(), rl.end(), DILIMETER) != rl.end()) {
+				edge e;
+				rs >> e;
+				if (beginNodes.find(e.start) == beginNodes.end())
+					beginNodes[e.start] = curFile; // 起点为第一次出现
+				leafNodes[e.end] = curFile;		// 后面出现的会被前面覆盖
+			}
+		}
+
+		fs.close();
+	}
+
+	// 初始化存储器为两个集合的并集，起始节点全部输入，叶子为剩余的自身差集
+	set<int> intersect;
+	for (auto b : beginNodes) {
+		if (leafNodes.find(b.first) != leafNodes.end())
+			intersect.insert(b.first);
+		fileNodeMap[b.second].insert(b.first);
+	}
+	for (auto l : leafNodes)
+		if (intersect.find(l.first) == intersect.end())
+			fileNodeMap[l.second].insert(l.first);
+
+	// 输入分配结果
+	for (auto fn = fileNodeMap.begin(); fn != fileNodeMap.end(); ++fn)
+		partitions.push(fn->second);
+
+}
+
+bool Evaluator::Check() {
+	Checker orignalChecker(mainDir);
+	Checker decompChecker(subDir, DECOMPFIL);
+	return orignalChecker == decompChecker;
+}
+
+void Evaluator::EvaluateWeights() {
+
+	getFiles(subDir, ".txt", decomp_files, DECOMPFIL);
+
+	for (auto f = decomp_files.begin(); f != decomp_files.end(); ++f) {
+		fstream rfs(*f, fstream::in);
+		readRawFile(rfs);
+		rfs.close();
+	}
+
+	// 需要得到分配信息
+	getPartition();
+
+	initialAdjMat();
+	initialCostMat();
+
+	ev = Evaluate();
+	aw = GetAllWeights();
+
+}
+
+Evaluator::~Evaluator() = default;
+
 Finder::Finder(string _subDir) {
 	subDir = _subDir;
 	SUFFIX = OPTFIL;
-	getFiles(subDir, ".txt", files, SUFFIX);
+	getFiles(subDir, ".txt", opt_files, SUFFIX);
 }
 
 fileNo Finder::findStoredFile(int node) {
-	for (auto f = files.begin(); f != files.end(); ++f) {
+	for (auto f = opt_files.begin(); f != opt_files.end(); ++f) {
 		fileNo cur = parseFileInt(*f);
 		if (subGraphs.find(cur) == subGraphs.end())
 			loadSubgraph(cur);			// 子图尚未被加载

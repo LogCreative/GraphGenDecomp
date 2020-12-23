@@ -412,6 +412,10 @@ public:
 	// - 设计一个算法，将多个子图合并及删除虚节点后，检查与原图A一致。输出分割边的权重和。
 	// - 该问与上一问合并
 	bool Check();
+	// 仅检查一致性
+	bool OnlyCheck();
+	// 评估：检查并更新权重信息
+	string Evaluate();
 	/* (3) 子图上算法 */
 	// - 指定一个点，列出计算所有经有向边可达的节点
 	string ReachablePoints(int node);
@@ -456,34 +460,19 @@ protected:
 
 };
 
-const double SPLIT_RATIO = 0.5;
-
-// 分解器
-class Decomposer : Processor {
+class ValueProcessor : public Processor {
 public:
-	Decomposer(int _n, fstream& fs, string _subDir, DecompSol _sol);
-	~Decomposer();
-
-	// An efficient heuristic procedure for partitioning graphs
-	// https://ieeexplore.ieee.org/document/6771089/
-	void Kerninghan_Lin();
-
+	// 评估
+	double Evaluate();
+	// 获取所有边权重和
+	double GetAllWeights();
 	// 输出节点分配，便于验证
 	string OuputPartitions() const;
 
-	// 评估
-	double Evaluate();
-
-	// 获取所有边权重和
-	double GetAllWeights();
-
-private:
-	DecompSol sol;
-
+protected:
 	map<int, nodeStruct> adjMat;			// 邻接矩阵
 	queue<set<int>> partitions;				// 节点分配
 	map<int, map<int, double>> costMat;		// 损失矩阵
-	map<int, double> diffCol;				// 内外差列
 
 	// 初始化邻接矩阵
 	void initialAdjMat();
@@ -491,6 +480,24 @@ private:
 	void initialCostMat();
 	// 获取损失矩阵值
 	double getCostValue(int i, int j);
+};
+
+const double SPLIT_RATIO = 0.5;
+
+// 分解器
+class Decomposer : public ValueProcessor {
+public:
+	Decomposer(int _n, fstream& fs, string _subDir, DecompSol _sol);
+	~Decomposer();
+
+	// An efficient heuristic procedure for partitioning graphs
+	// https://ieeexplore.ieee.org/document/6771089/
+	void Kerninghan_Lin();
+private:
+	DecompSol sol;
+
+	map<int, double> diffCol;				// 内外差列
+
 	// 计算内外差列
 	void calcDiffMat(set<int>& A, set<int>& B);
 	// 获取集合范围内的最大D对应的节点
@@ -509,14 +516,8 @@ private:
 
 };
 
-class FileProcessor : public Processor {
-protected:
-	vector<string> files;
-	map<int, fileNo> nodeFileMap;			// 节点-文件映射
-};
-
 // 优化器
-class Optimizer : public FileProcessor {
+class Optimizer : public Processor {
 public:
 	Optimizer(int _n, string _subDir);
 	~Optimizer();
@@ -524,6 +525,9 @@ public:
 	// 优化
 	void Optimize();
 private:
+	vector<string> decomp_files;			// 分解后的子图
+	map<int, fileNo> nodeFileMap;			// 节点-文件映射
+
 	// 获取节点分配位置
 	void getNodesAllocation();
 	// 分配边
@@ -546,8 +550,26 @@ private:
 	friend bool operator==(Checker const& l, Checker const& r);
 };
 
+class Evaluator : public ValueProcessor {
+public:
+	Evaluator(string _mainDir, string _subDir);
+	~Evaluator();
+
+	// 检查
+	bool Check();
+
+	// 不破坏文件的前提下，评估
+	void EvaluateWeights();
+private:
+	string mainDir;
+	vector<string> decomp_files;			// 分解后的子图
+
+	// 得到分配信息
+	void getPartition();
+};
+
 // 查找器
-class Finder : public FileProcessor {
+class Finder : public Processor {
 public:
 	Finder(string _subDir);
 	~Finder();
@@ -556,6 +578,7 @@ public:
 	// 最短路径
 	string ShortestPath(int start, int end);
 private:
+	vector<string> opt_files;				// 优化后的子图文件
 	map < fileNo, FileUnit > subGraphs;		// 子图
 	//queue<pair<fileNo, queue<int>>> visitFileQueue;			// 文件访问队列以及需要访问的节点
 	map<int, int> prev;						// 前继节点

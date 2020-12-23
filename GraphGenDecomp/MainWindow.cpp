@@ -2,12 +2,15 @@
 
 /*
 2020 / 12 / 21                      整合窗口
+2020 / 12 / 21                      图预览界面
 */
 
-#include "../GUI_facilities.h"
+//#include "../GUI_facilities.h"
 #include "../GraphGen/GraphGen.h"
 #include "../GraphDecomp/GraphDecomp.h"
+#include "GraphView.hpp"            // Contains GUI_Facilities.h
 
+// Tab Generator
 Fl_Input* G_MfilenameG = NULL;
 Fl_Choice* I_NodeType = NULL;
 Fl_Choice* I_EdgeType = NULL;
@@ -15,6 +18,7 @@ Fl_Choice* I_GraphNum = NULL;
 Fl_Choice* I_ModeChoice = NULL;
 Fl_Input* I_LineCount = NULL;
 
+// Tab Decomposer
 Fl_Input* G_Mfilename = NULL;
 Fl_Input* G_Sfilename = NULL;
 Fl_Input* I_MainNodeModifier = NULL;
@@ -30,6 +34,10 @@ Fl_Window* win = NULL;
 Fl_Input* I_NodeStart = NULL;
 Fl_Input* I_NodeEnd = NULL;
 Fl_Multiline_Input* O_FinderUtil = NULL;
+
+// GraphView
+GraphView* GV = NULL;
+Fl_Check_Button* I_AutoGen = NULL;
 
 void PickFileG_CB(Fl_Widget*, void*) {
     // Create native chooser
@@ -126,6 +134,20 @@ void globalRefresh() {
         R_DILIMETER = ',';
     DECOMPFIL = I_SubFileModifier->value();
     OPTFIL = I_OptFileModifier->value();
+}
+
+void butCheck_CB(Fl_Widget*, void*) {
+    GraphDecomp gdc(parseInt(I_DecompSize->value()), G_Mfilename->value(), G_Sfilename->value());
+    globalRefresh();
+
+    O_Partition->value(gdc.Evaluate().c_str());
+    effp->update(ev / aw);
+
+    string effstr = to_string((int)ev) + '/' + to_string((int)aw);
+    effstr = (gdc.OnlyCheck() ? "PASS " : "NOPASS ") + effstr;
+    auto c = const_cast<char*>(effstr.c_str());
+    boxEff->copy_label(c);
+    boxEff->redraw_label();
 }
 
 void butDecomp_CB(Fl_Widget*, void*) {
@@ -246,9 +268,9 @@ int main(int argc, char** argv) {
 
             //---------- Tab Decomposer -----------
 
-            Fl_Group* d = new Fl_Group(0, 20, 600, 380, "Decomposer");
+            Fl_Group* d = new Fl_Group(0, 20, 600, 380, "&Decomposer");
             
-            Fl_Box* boxDecompTitle = new Fl_Box(PADDING, PADDING, 140, 30, "&Decomposer");
+            Fl_Box* boxDecompTitle = new Fl_Box(PADDING, PADDING, 140, 30, "Decomposer");
             boxDecompTitle->labelsize(25);
             boxDecompTitle->labelcolor(Color::blue);
 
@@ -316,7 +338,12 @@ int main(int argc, char** argv) {
             boxEff = new Fl_Box(PADDING, groupDecompSet->y() + groupDecompSet->h() + MARGIN * 2, 150, 50, "-/-");
             boxEff->tooltip("Homogeneity Check Status  Cut edge loss / Total edge weight");
 
-            Fl_Button* butDecomp = new Fl_Button(boxEff->x() + boxEff->w() + MARGIN, groupDecompSet->y() + groupDecompSet->h() + MARGIN, 140, 50, "DECOMP + OPT");
+            Fl_Button* butCheck = new Fl_Button(boxEff->x() + boxEff->w() + MARGIN, groupDecompSet->y() + groupDecompSet->h() + MARGIN, 140, 25, "CHK ONLY");
+            butCheck->tooltip("ONLY check the homogeneity between the main graph and subgraphs & calculate the weights, without any modification towards original files.");
+            butCheck->callback(butCheck_CB);
+
+            Fl_Button* butDecomp = new Fl_Button(butCheck->x(), butCheck->y() + butCheck->h(), 140, 25, "DECOMP + OPT");
+            butDecomp->tooltip("Decompose the main graph to the subgraph folder, and optimize the decomposed files to be contained with unique nodes.");
             butDecomp->callback(butDecomp_CB);
 
             O_Partition = new Fl_Multiline_Input(PADDING, butDecomp->y() + butDecomp->h() + MARGIN, groupDecompSet->w(), 90);
@@ -350,6 +377,14 @@ int main(int argc, char** argv) {
         }
         t->end();
         Fl_Group::current()->resizable(t);
+
+        Fl_Button* butGenPrev = new Fl_Button(t->x() + t->w() + MARGIN, t->y(), 100, 20, "Preview Gen");
+
+        Fl_Button* butOptPrev = new Fl_Button(butGenPrev->x() + butGenPrev->w() + MARGIN, t->y(), 100, 20, "Preview Opt");
+        
+        I_AutoGen = new Fl_Check_Button(butOptPrev->x() + butOptPrev->w() + MARGIN, butOptPrev->y(), 100, 20, "Auto Preview");
+
+        GV = new GraphView(butGenPrev->x(), butGenPrev->y() + butGenPrev->h(), FULLWIDTH - WIDTH - MARGIN, HEIGHT - butGenPrev->h());
 	}
 	mainwin->end();
 	mainwin->show(argc, argv);
