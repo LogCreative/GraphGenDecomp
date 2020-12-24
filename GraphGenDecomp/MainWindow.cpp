@@ -173,7 +173,7 @@ void butDecomp_CB(Fl_Widget*, void*) {
     if (strcmp(I_DecompAlg->text(), "hardest") == 0) _sol = kl;
     else if (strcmp(I_DecompAlg->text(), "harder") == 0) _sol = ll;
     else if (strcmp(I_DecompAlg->text(), "medium") == 0) _sol = onepass;
-    else if (strcmp(I_DecompAlg->text(), "dfs") == 0) _sol = dfs;
+    else if (strcmp(I_DecompAlg->text(), "bfs") == 0) _sol = bfs;
     else if (strcmp(I_DecompAlg->text(), "order") == 0) _sol = rough;
     R_PREFIX = strlen(I_MainNodeModifier->value()) == 0 ? '\0' : I_MainNodeModifier->value()[0];
 
@@ -363,7 +363,7 @@ int main(int argc, char** argv) {
             I_DecompAlg->add("hardest");
             I_DecompAlg->add("harder");
             I_DecompAlg->add("medium");
-            I_DecompAlg->add("dfs");
+            I_DecompAlg->add("bfs");
             I_DecompAlg->add("order");
             I_DecompAlg->value(0);
 

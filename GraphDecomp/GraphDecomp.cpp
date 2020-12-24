@@ -241,6 +241,7 @@ void Decomposer::optimizeParts(set<int>& A, set<int>& B) {
 			vector<int> bk;
 			vector<double> gain;
 			int size = B.size();
+			if (sol == onepass) size *= 0.25;
 			while (--size) {
 				int amax;
 				int bmax;
@@ -297,35 +298,42 @@ int Decomposer::getMaxConnWeightNode() {
 	return maxNode;
 }
 
-/* 需要修正为 BFS */
-
-void Decomposer::DFSUnit(int start) {
-	partTmp.insert(start);
-	connNodes.erase(start);
-	if (--nodeLeft == 0) {
-		partitions.push(partTmp);
-		partTmp.clear();
-		nodeLeft = n;
+void Decomposer::insertPartTmp(int input) {
+	if (connNodes.find(input) != connNodes.end()) {
+		connNodes.erase(input);
+		partTmp.insert(input);
+		if (partTmp.size() == n) {
+			partitions.push(partTmp);
+			partTmp.clear();
+		}
 	}
-	int visiting = adjMat[start].getMaxLinkedNode();
-	if (visiting == RESNODE || visiting == start) {
-		return;
-	}
-	adjMat[start].removeN2N(visiting);
-	DFSUnit(visiting);
 }
 
-void Decomposer::DFS() {
-	/*
-	图分割之后生成的子图之间为什么会有重复节点？分割不就是把节点分到不同的图吗？
-	怕有些同学加了很多节点进去。如果没有引进冗余节点，就没有问题。
-	*/
-	nodeLeft = n;
-	while (!connNodes.empty())
-		DFSUnit(getMaxConnWeightNode());
+void Decomposer::BFS() {
+
+	queue<int> visitQueue;
+
+	while (!connNodes.empty()) {
+		visitQueue.push(getMaxConnWeightNode());
+		while (!visitQueue.empty()) {
+			int tn = visitQueue.front();
+			visitQueue.pop();
+			insertPartTmp(tn);
+
+			int nn;
+			while ((nn = adjMat[tn].getMaxLinkedNode()) != RESNODE) {
+				insertPartTmp(nn);
+				if (connNodes.find(nn) != connNodes.end())
+					visitQueue.push(nn);
+				adjMat[tn].removeN2N(nn);
+			}
+		}
+	}
+
+	if (!partTmp.empty())
+		partitions.push(partTmp);
 
 	allocateIsoNodes();
-
 	outputSubAdjGraphs();
 }
 
@@ -341,7 +349,7 @@ void Decomposer::Kerninghan_Lin() {
 	for (auto n : adjListGraph)
 		connNodes.insert(n.first);
 
-	if (sol == dfs) { DFS();  return; }
+	if (sol == bfs) { BFS();  return; }
 	
 	// 每一步都是局部最优
 	// 最终可能是全局最优

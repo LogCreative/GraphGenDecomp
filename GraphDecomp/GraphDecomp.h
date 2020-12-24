@@ -21,6 +21,7 @@
 	2020 / 12 / 19 ~ 2020 / 12 / 20	继续优化
 	2020 / 12 / 20 ~ 2020 / 12 / 20	开发图形界面
 	2020 / 12 / 23 ~ 2020 / 12 / 23	评估器
+	2020 / 12 / 24 ~ 2020 /			开发低端算法 BFS
 	2020 / 12 / 27	23:59			截止时间
 */
 
@@ -408,7 +409,7 @@ public:
 	set<int> nodeVisited;				// 访问过的节点集
 };
 
-enum DecompSol { rough, dfs, onepass, ll, kl };		// 分解方案类型
+enum DecompSol { rough, bfs, onepass, ll, kl };		// 分解方案类型
 
 class GraphDecomp : GraphCommon {
 public:
@@ -514,8 +515,8 @@ public:
 	// https://ieeexplore.ieee.org/document/6771089/
 	void Kerninghan_Lin();
 
-	// 深度优先搜索
-	void DFS();
+	// 广度优先搜索
+	void BFS();
 private:
 	DecompSol sol;
 
@@ -538,12 +539,11 @@ private:
 	// 分配孤立节点
 	void allocateIsoNodes();
 
-	int nodeLeft;							// 节点剩余量
 	set<int> partTmp;						// 临时分割集
+	// 插入临时分割集
+	void insertPartTmp(int input);
 	// 获取最大连接权重节点
 	int getMaxConnWeightNode();
-	// 深度优先搜索单元
-	void DFSUnit(int start);
 
 };
 
