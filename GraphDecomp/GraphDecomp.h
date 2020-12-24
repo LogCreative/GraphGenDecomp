@@ -425,7 +425,7 @@ public:
 	- 我们将挑选若干自动生成的图，对比大家生成的权重之和值——
 		【在结果正确的前提下，计算权重之和越小，分数越高。】
 	*/
-	string Decomp(DecompSol sol);
+	string Decomp(DecompSol sol, bool check = false);
 	/* (2) 优化子图存储
 	上述图分割算法导致分割成的多个子图之间存在重复的节点，请设计一个方法，使
 	- 多个子图文件中分别载入程序后，不存在重复的节点
@@ -494,12 +494,14 @@ public:
 protected:
 	map<int, nodeStruct> adjMat;			// 邻接矩阵
 	queue<set<int>> partitions;				// 节点分配
-	map<int, map<int, double>> costMat;		// 损失矩阵
+	//map<int, map<int, double>> costMat;		// 损失矩阵
 
 	// 初始化邻接矩阵
 	void initialAdjMat();
 	// 初始化损失矩阵
-	void initialCostMat();
+	// void initialCostMat();
+	// 得到损失矩阵的值
+	inline double getCostValue(int a, int b);
 
 };
 

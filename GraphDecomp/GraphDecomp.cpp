@@ -23,16 +23,18 @@ void GraphDecomp::ResetSubFolder() {
 	system(command_md.c_str());
 }
 
-string GraphDecomp::Decomp(DecompSol sol) {
+string GraphDecomp::Decomp(DecompSol sol, bool check) {
 	fstream fs(mainDir, fstream::in);
 	if (!fs) error("Cannot open main graph file!");
 	
 	Decomposer decomp(n, fs, subDir, sol);
 	fs.close();
 
-	ev = decomp.Evaluate();
-	aw = decomp.GetAllWeights();
-	
+	if (check) {
+		ev = decomp.Evaluate();
+		aw = decomp.GetAllWeights();
+	}
+
 	return decomp.OuputPartitions();
 }
 
@@ -147,17 +149,23 @@ void ValueProcessor::initialAdjMat() {
 		adjMat[n.first] = ns;
 	}
 }
+//
+//void ValueProcessor::initialCostMat() {
+//	costMat.clear();
+//	for (auto i : adjMat)
+//		for (auto j : adjMat)
+//			if (i.first != j.first)
+//				costMat[i.first][j.first] =
+//				costMat[j.first][i.first] =
+//				adjMat[i.first].adjMatCol[j.first] + adjMat[j.first].adjMatCol[i.first];
+//			else
+//				costMat[j.first][i.first] = adjMat[i.first].adjMatCol[j.first];			// 相等只算一次
+//}
 
-void ValueProcessor::initialCostMat() {
-	costMat.clear();
-	for (auto i : adjMat)
-		for (auto j : adjMat)
-			if (i.first != j.first)
-				costMat[i.first][j.first] =
-				costMat[j.first][i.first] =
-				adjMat[i.first].adjMatCol[j.first] + adjMat[j.first].adjMatCol[i.first];
-			else
-				costMat[j.first][i.first] = adjMat[i.first].adjMatCol[j.first];			// 相等只算一次
+inline double ValueProcessor::getCostValue(int a, int b) {
+	if (a == b)
+		return adjMat[a].adjMatCol[b];
+	return adjMat[a].adjMatCol[b] + adjMat[b].adjMatCol[a];
 }
 
 void Decomposer::divide(set<int> S) {
@@ -183,21 +191,21 @@ void Decomposer::calcDiffMat(set<int>& A, set<int>& B) {
 		// 计算外差距
 		double E = 0;
 		for (auto b : B)
-			E += costMat[a][b];
+			E += getCostValue(a, b);
 		// 计算内差距
 		double I = 0;
 		for (auto ap : A)
-			I += costMat[a][ap];
+			I += getCostValue(a, ap);
 		diffCol[a] = E - I;
 	}
 
 	for (auto b : B) {
 		double E = 0;
 		for (auto a : A)
-			E += costMat[b][a];
+			E += getCostValue(b, a);
 		double I = 0;
 		for (auto bp : B)
-			I += costMat[b][bp];
+			I += getCostValue(b, bp);
 		diffCol[b] = E - I;
 	}
 }
@@ -220,7 +228,7 @@ pair<int, int> Decomposer::getMaxGainPair(set<int>& A, set<int>& B) {
 	double gainmax = - INFINITY;
 	for (auto a : A) {
 		for (auto b : B) {
-			double gaintmp = diffCol[a] + diffCol[b] - 2 * costMat[a][b];
+			double gaintmp = diffCol[a] + diffCol[b] - 2 * getCostValue(a, b);
 			if (gaintmp > gainmax) {
 				selecPair = make_pair(a, b);
 				gainmax = gaintmp;
@@ -255,7 +263,7 @@ void Decomposer::optimizeParts(set<int>& A, set<int>& B) {
 					amax = selecPair.first;
 					bmax = selecPair.second;
 				}
-				gainLocal = diffCol[amax] + diffCol[bmax] - 2 * costMat[amax][bmax];
+				gainLocal = diffCol[amax] + diffCol[bmax] - 2 * getCostValue(amax, bmax);
 				ak.push_back(amax);
 				bk.push_back(bmax);
 				Ap.erase(amax);
@@ -343,7 +351,7 @@ void Decomposer::Kerninghan_Lin() {
 	initialAdjMat();
 
 	// 初始化损失矩阵
- 	initialCostMat();
+ 	//initialCostMat();
 
 	// 分配连通节点
 	for (auto n : adjListGraph)
@@ -442,11 +450,11 @@ double ValueProcessor::Evaluate(){
 
 	for (auto i = partitionSet.begin(); i != partitionSet.end(); ++i) {
 		auto j = i;
-		++j;
+		++j;			// 不同的集合
 		for (; j != partitionSet.end(); ++j)
-			for (auto ik : *i)
-				for (auto jk : *j)
-					loss += costMat[ik][jk];
+			for (auto ik = i->begin(); ik != i->end(); ++ik)
+				for (auto jk = j->begin(); jk != j->end(); ++jk)
+					loss += getCostValue(*ik, *jk);
 	}
 
 	return loss;
@@ -464,7 +472,7 @@ double ValueProcessor::GetAllWeights() {
 	for (auto i = connNodes.begin(); i != connNodes.end(); ++i) {
 		auto j = i;
 		for (; j != connNodes.end(); ++j)
-			total += costMat[*i][*j];
+			total += getCostValue(*i, *j);
 	}
 	
 	return total;
@@ -708,7 +716,7 @@ void Evaluator::EvaluateWeights() {
 	getPartition();
 
 	initialAdjMat();
-	initialCostMat();
+	//initialCostMat();
 
 	ev = Evaluate();
 	aw = GetAllWeights();
