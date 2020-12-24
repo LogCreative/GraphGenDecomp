@@ -2,7 +2,7 @@
 
 /*
 2020 / 12 / 21                      整合窗口
-2020 / 12 / 21                      图预览界面
+                                    图预览界面
 */
 
 //#include "../GUI_facilities.h"
@@ -32,7 +32,7 @@ Fl_Input* I_SubFileModifier = NULL;
 Fl_Input* I_OptFileModifier = NULL;
 Fl_Input* I_DecompSize = NULL;
 Fl_Choice* I_DecompAlg = NULL;
-Fl_Check_Button* I_Check = NULL;
+Fl_Check_Button* I_Calc = NULL;
 Fl_Box* boxEff = NULL;
 progressbar* effp = NULL;
 Fl_Multiline_Input* O_Partition = NULL;
@@ -179,19 +179,21 @@ void butDecomp_CB(Fl_Widget*, void*) {
 
     globalRefresh();
 
-    bool Check = I_Check->value();
+    bool calc = I_Calc->value();
 
-    O_Partition->value(gd.Decomp(_sol, Check).c_str());
+    O_Partition->value(gd.Decomp(_sol, calc).c_str());
     gd.Optimize();
 
-    if (Check) {
+    string effstr;
+    if (calc) {
         effp->update(ev / aw);
-        string effstr = to_string((int)ev) + '/' + to_string((int)aw);
+        effstr = to_string((int)ev) + '/' + to_string((int)aw);
         effstr = (gd.Check() ? "PASS " : "NOPASS ") + effstr;
-        auto c = const_cast<char*>(effstr.c_str());
-        boxEff->copy_label(c);
-        boxEff->redraw_label();
     }
+    else effstr = (gd.Check() ? "PASS -/-" : "NOPASS -/-");
+    auto c = const_cast<char*>(effstr.c_str());
+    boxEff->copy_label(c);
+    boxEff->redraw_label();
 }
 
 void Reach_CB(Fl_Widget*, void*) {
@@ -373,9 +375,9 @@ int main(int argc, char** argv) {
 
             effp = new progressbar(PADDING, groupDecompSet->y() + groupDecompSet->h() + MARGIN * 3, 150, 20, 0);
 
-            I_Check = new Fl_Check_Button(effp->x(), effp->y() - MARGIN * 2.5, 150, 20, "CHK after DECOMP");
-            I_Check->tooltip("Decompose and optimize the main graph with checking, which avoids repeat calculation for small graphs in checking procedure but is not time efficient to get the partition result for large graphs.");
-            I_Check->value(1);
+            I_Calc = new Fl_Check_Button(effp->x(), effp->y() - MARGIN * 2.5, 150, 20, "CALC after DECOMP");
+            I_Calc->tooltip("Calculate the weights after decomposition and optimization, which is data-shared for calculation in small graphs but is not efficient to get the partition data in large graphs.");
+            I_Calc->value(1);
 
             boxEff = new Fl_Box(PADDING, groupDecompSet->y() + groupDecompSet->h() + MARGIN * 4, 150, 50, "-/-");
             boxEff->tooltip("Homogeneity Check Status  Cut edge loss / Total edge weight");

@@ -23,14 +23,14 @@ void GraphDecomp::ResetSubFolder() {
 	system(command_md.c_str());
 }
 
-string GraphDecomp::Decomp(DecompSol sol, bool check) {
+string GraphDecomp::Decomp(DecompSol sol, bool calc) {
 	fstream fs(mainDir, fstream::in);
 	if (!fs) error("Cannot open main graph file!");
 	
 	Decomposer decomp(n, fs, subDir, sol);
 	fs.close();
 
-	if (check) {
+	if (calc) {
 		ev = decomp.Evaluate();
 		aw = decomp.GetAllWeights();
 	}
@@ -149,18 +149,6 @@ void ValueProcessor::initialAdjMat() {
 		adjMat[n.first] = ns;
 	}
 }
-//
-//void ValueProcessor::initialCostMat() {
-//	costMat.clear();
-//	for (auto i : adjMat)
-//		for (auto j : adjMat)
-//			if (i.first != j.first)
-//				costMat[i.first][j.first] =
-//				costMat[j.first][i.first] =
-//				adjMat[i.first].adjMatCol[j.first] + adjMat[j.first].adjMatCol[i.first];
-//			else
-//				costMat[j.first][i.first] = adjMat[i.first].adjMatCol[j.first];			// 相等只算一次
-//}
 
 inline double ValueProcessor::getCostValue(int a, int b) {
 	if (a == b)
@@ -338,7 +326,7 @@ void Decomposer::BFS() {
 		}
 	}
 
-	if (!partTmp.empty())
+	if (!partTmp.empty())			// 可能还有剩余
 		partitions.push(partTmp);
 
 	allocateIsoNodes();
@@ -828,8 +816,7 @@ string Finder::ShortestPath(int start, int end) {
 	fileNo fin = findStoredFile(end);
 
 	if (fin == 0){
-		error("Node " + to_string(end) + " is not stored!");
-		return "INF";
+		return "Node " + to_string(end) + " is not stored!";
 	}
 
 	distance[start] = 0;
