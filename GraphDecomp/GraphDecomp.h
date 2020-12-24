@@ -247,9 +247,23 @@ public:
 			}
 		}
 
-		// 获取连接至节点的权重
-		inline double getConnWeight(int target) {
-			return adjMatCol.find(target) == adjMatCol.end() ? 0 : adjMatCol[target];
+		// 得到发出对应最大连接权重节点
+		int getMaxLinkedNode() const {
+			int maxNode = RESNODE;
+			int maxWeight = RESNODE;
+			for (auto n = adjMatCol.begin(); n!= adjMatCol.end(); ++n)
+				if (n->second > maxWeight) {
+					maxNode = n->first;
+					maxWeight = n->second;
+				}
+			return maxNode;
+		}
+
+		// 清除到节点的连接
+		void removeN2N(int target) {
+			adjMatColEdge.erase(target);
+			totalWeight -= adjMatCol[target];
+			adjMatCol.erase(target);
 		}
 	};
 
@@ -394,7 +408,7 @@ public:
 	set<int> nodeVisited;				// 访问过的节点集
 };
 
-enum DecompSol { rough, onepass, ll, kl };		// 分解方案类型
+enum DecompSol { rough, dfs, onepass, ll, kl };		// 分解方案类型
 
 class GraphDecomp : GraphCommon {
 public:
@@ -485,8 +499,7 @@ protected:
 	void initialAdjMat();
 	// 初始化损失矩阵
 	void initialCostMat();
-	// 获取损失矩阵值
-	double getCostValue(int i, int j);
+
 };
 
 const double SPLIT_RATIO = 0.5;
@@ -500,10 +513,14 @@ public:
 	// An efficient heuristic procedure for partitioning graphs
 	// https://ieeexplore.ieee.org/document/6771089/
 	void Kerninghan_Lin();
+
+	// 深度优先搜索
+	void DFS();
 private:
 	DecompSol sol;
 
 	map<int, double> diffCol;				// 内外差列
+	set<int> connNodes;						// 连通节点集合
 
 	// 计算内外差列
 	void calcDiffMat(set<int>& A, set<int>& B);
@@ -520,6 +537,13 @@ private:
 	void outputSubAdjGraphs() const;
 	// 分配孤立节点
 	void allocateIsoNodes();
+
+	int nodeLeft;							// 节点剩余量
+	set<int> partTmp;						// 临时分割集
+	// 获取最大连接权重节点
+	int getMaxConnWeightNode();
+	// 深度优先搜索单元
+	void DFSUnit(int start);
 
 };
 

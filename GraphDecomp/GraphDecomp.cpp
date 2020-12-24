@@ -150,19 +150,14 @@ void ValueProcessor::initialAdjMat() {
 
 void ValueProcessor::initialCostMat() {
 	costMat.clear();
-	for (auto i : adjMat) 
-		for (auto j : adjMat) 
-			costMat[i.first][j.first] = 
-			costMat[j.first][i.first] = 
-				adjMat[i.first].getConnWeight(j.first)
-				+ adjMat[j.first].getConnWeight(i.first);
-}
-
-double ValueProcessor::getCostValue(int i, int j) {
-	if (costMat.find(i) == costMat.end() ||
-		costMat[i].find(j) == costMat[i].end())
-		return 0;
-	return costMat[i][j];
+	for (auto i : adjMat)
+		for (auto j : adjMat)
+			if (i.first != j.first)
+				costMat[i.first][j.first] =
+				costMat[j.first][i.first] =
+				adjMat[i.first].adjMatCol[j.first] + adjMat[j.first].adjMatCol[i.first];
+			else
+				costMat[j.first][i.first] = adjMat[i.first].adjMatCol[j.first];			// 相等只算一次
 }
 
 void Decomposer::divide(set<int> S) {
@@ -188,21 +183,21 @@ void Decomposer::calcDiffMat(set<int>& A, set<int>& B) {
 		// 计算外差距
 		double E = 0;
 		for (auto b : B)
-			E += getCostValue(a, b);
+			E += costMat[a][b];
 		// 计算内差距
 		double I = 0;
 		for (auto ap : A)
-			I += getCostValue(a, ap);
+			I += costMat[a][ap];
 		diffCol[a] = E - I;
 	}
 
 	for (auto b : B) {
 		double E = 0;
 		for (auto a : A)
-			E += getCostValue(b, a);
+			E += costMat[b][a];
 		double I = 0;
 		for (auto bp : B)
-			I += getCostValue(b, bp);
+			I += costMat[b][bp];
 		diffCol[b] = E - I;
 	}
 }
@@ -225,7 +220,7 @@ pair<int, int> Decomposer::getMaxGainPair(set<int>& A, set<int>& B) {
 	double gainmax = - INFINITY;
 	for (auto a : A) {
 		for (auto b : B) {
-			double gaintmp = diffCol[a] + diffCol[b] - 2 * getCostValue(a, b);
+			double gaintmp = diffCol[a] + diffCol[b] - 2 * costMat[a][b];
 			if (gaintmp > gainmax) {
 				selecPair = make_pair(a, b);
 				gainmax = gaintmp;
@@ -259,7 +254,7 @@ void Decomposer::optimizeParts(set<int>& A, set<int>& B) {
 					amax = selecPair.first;
 					bmax = selecPair.second;
 				}
-				gainLocal = diffCol[amax] + diffCol[bmax] - 2 * getCostValue(amax, bmax);
+				gainLocal = diffCol[amax] + diffCol[bmax] - 2 * costMat[amax][bmax];
 				ak.push_back(amax);
 				bk.push_back(bmax);
 				Ap.erase(amax);
@@ -285,8 +280,53 @@ void Decomposer::optimizeParts(set<int>& A, set<int>& B) {
 				B.erase(bk[l]);
 				A.insert(bk[l]);
 			}
-		} while (G > 0 || sol == onepass);
+			if (sol == onepass)
+				break;
+		} while (G > 0);
 	}
+}
+
+int Decomposer::getMaxConnWeightNode() {
+	int maxNode = RESNODE;
+	double maxWeight = RESNODE;
+	for (auto n : connNodes)
+		if (adjMat[n].totalWeight > maxWeight) {
+			maxNode = n;
+			maxWeight = adjMat[n].totalWeight;
+		}
+	return maxNode;
+}
+
+/* 需要修正为 BFS */
+
+void Decomposer::DFSUnit(int start) {
+	partTmp.insert(start);
+	connNodes.erase(start);
+	if (--nodeLeft == 0) {
+		partitions.push(partTmp);
+		partTmp.clear();
+		nodeLeft = n;
+	}
+	int visiting = adjMat[start].getMaxLinkedNode();
+	if (visiting == RESNODE || visiting == start) {
+		return;
+	}
+	adjMat[start].removeN2N(visiting);
+	DFSUnit(visiting);
+}
+
+void Decomposer::DFS() {
+	/*
+	图分割之后生成的子图之间为什么会有重复节点？分割不就是把节点分到不同的图吗？
+	怕有些同学加了很多节点进去。如果没有引进冗余节点，就没有问题。
+	*/
+	nodeLeft = n;
+	while (!connNodes.empty())
+		DFSUnit(getMaxConnWeightNode());
+
+	allocateIsoNodes();
+
+	outputSubAdjGraphs();
 }
 
 void Decomposer::Kerninghan_Lin() {
@@ -298,9 +338,10 @@ void Decomposer::Kerninghan_Lin() {
  	initialCostMat();
 
 	// 分配连通节点
-	set<int> connNodes;
 	for (auto n : adjListGraph)
 		connNodes.insert(n.first);
+
+	if (sol == dfs) { DFS();  return; }
 	
 	// 每一步都是局部最优
 	// 最终可能是全局最优
@@ -397,7 +438,7 @@ double ValueProcessor::Evaluate(){
 		for (; j != partitionSet.end(); ++j)
 			for (auto ik : *i)
 				for (auto jk : *j)
-					loss += getCostValue(ik, jk);
+					loss += costMat[ik][jk];
 	}
 
 	return loss;
@@ -411,10 +452,13 @@ double ValueProcessor::GetAllWeights() {
 	for (auto n : adjListGraph)
 		connNodes.insert(n.first);
 
-	for (auto i : connNodes)
-		for (auto j : connNodes)
-			total += adjMat[i].getConnWeight(j);
-
+	// 改为使用损失矩阵计算
+	for (auto i = connNodes.begin(); i != connNodes.end(); ++i) {
+		auto j = i;
+		for (; j != connNodes.end(); ++j)
+			total += costMat[*i][*j];
+	}
+	
 	return total;
 }
 

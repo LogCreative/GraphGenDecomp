@@ -171,8 +171,9 @@ void butDecomp_CB(Fl_Widget*, void*) {
     DecompSol _sol;
 
     if (strcmp(I_DecompAlg->text(), "hardest") == 0) _sol = kl;
-    else if (strcmp(I_DecompAlg->text(), "medium") == 0) _sol = ll;
-    else if (strcmp(I_DecompAlg->text(), "faster") == 0) _sol = onepass;
+    else if (strcmp(I_DecompAlg->text(), "harder") == 0) _sol = ll;
+    else if (strcmp(I_DecompAlg->text(), "medium") == 0) _sol = onepass;
+    else if (strcmp(I_DecompAlg->text(), "dfs") == 0) _sol = dfs;
     else if (strcmp(I_DecompAlg->text(), "order") == 0) _sol = rough;
     R_PREFIX = strlen(I_MainNodeModifier->value()) == 0 ? '\0' : I_MainNodeModifier->value()[0];
 
@@ -360,8 +361,9 @@ int main(int argc, char** argv) {
             I_DecompAlg = new Fl_Choice(groupDecompSet->x() + 120, I_DecompSize->y() + MARGIN * 2.5, 100, 25, "Decomp Algorithm");
             I_DecompAlg->tooltip("The hardness of dividing algorithm (Kerninghan-Lin)");
             I_DecompAlg->add("hardest");
+            I_DecompAlg->add("harder");
             I_DecompAlg->add("medium");
-            I_DecompAlg->add("faster");
+            I_DecompAlg->add("dfs");
             I_DecompAlg->add("order");
             I_DecompAlg->value(0);
 
