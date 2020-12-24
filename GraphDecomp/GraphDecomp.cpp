@@ -31,6 +31,8 @@ string GraphDecomp::Decomp(DecompSol sol, bool calc) {
 	fs.close();
 
 	if (calc) {
+		if (sol == bfs)
+			decomp.initialAdjMat();	// bfs 破坏了邻接矩阵 需要重新载入
 		ev = decomp.Evaluate();
 		aw = decomp.GetAllWeights();
 	}
@@ -237,8 +239,12 @@ void Decomposer::optimizeParts(set<int>& A, set<int>& B) {
 			vector<int> bk;
 			vector<double> gain;
 			int size = B.size();
-			if (sol == onepass) size *= 0.25;
-			while (--size) {
+			if (sol == onepass) { 
+				size *= 0.25;
+				if (size < 1) 
+					size = 1;
+			}
+			while (size--) {
 				int amax;
 				int bmax;
 				double gainLocal;

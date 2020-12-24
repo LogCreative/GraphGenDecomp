@@ -1,10 +1,5 @@
 // 主窗口
 
-/*
-2020 / 12 / 21                      整合窗口
-                                    图预览界面
-*/
-
 //#include "../GUI_facilities.h"
 #include "../GraphGen/GraphGen.h"
 #include "../GraphDecomp/GraphDecomp.h"
@@ -212,6 +207,10 @@ void Shortest_CB(Fl_Widget*, void*) {
     O_FinderUtil->value(gds.ShortestPath(parseInt(I_NodeStart->value()), parseInt(I_NodeEnd->value())).c_str());
 }
 
+void GenPrev_CB(Fl_Widget*, void*) {
+    
+}
+
 int main(int argc, char** argv) {
 	//// For a nicer looking browser under linux, call Fl_File_Icon::load_system_icons();
 	//// (If you do this, you'll need to link with fltk_images)
@@ -229,8 +228,13 @@ int main(int argc, char** argv) {
 	if (argc > argn && strncmp(argv[1], "-psn_", 5) == 0)
 		argn++;
 #endif
-    // In this version, the graph view is hidden.
+    
+#ifdef _DEBUG
+    const int FULLWIDTH = 1240;
+#else
     const int FULLWIDTH = 640;
+#endif // _DEBUG
+
 	const int WIDTH = 640;
 	const int HEIGHT = 640;
 	const int PADDING = 20;
@@ -422,23 +426,30 @@ int main(int argc, char** argv) {
             d->end();
             Fl_Group::current()->resizable(d);
 
+#ifndef _DEBUG
             Fl_Group* h = new Fl_Group(0, 20, 600, 380, "&Report");
-            Fl_Help_View* help = new Fl_Help_View(0, 20, WIDTH, HEIGHT-20);
+            Fl_Help_View* help = new Fl_Help_View(0, 20, WIDTH, HEIGHT - 20);
             help->load("README.html");
+            help->box(FL_DOWN_BOX);
+            fl_register_images();
 
             h->end();
             Fl_Group::current()->resizable(h);
+#endif // !_DEBUG
         }
         t->end();
         Fl_Group::current()->resizable(t);
 
+#ifdef _DEBUG
         Fl_Button* butGenPrev = new Fl_Button(t->x() + t->w() + MARGIN, t->y(), 100, 20, "Preview Gen");
+        butGenPrev->callback(GenPrev_CB);
 
         Fl_Button* butOptPrev = new Fl_Button(butGenPrev->x() + butGenPrev->w() + MARGIN, t->y(), 100, 20, "Preview Opt");
-        
+
         I_AutoGen = new Fl_Check_Button(butOptPrev->x() + butOptPrev->w() + MARGIN, butOptPrev->y(), 100, 20, "Auto Preview");
 
         GV = new GraphView(butGenPrev->x(), butGenPrev->y() + butGenPrev->h(), FULLWIDTH - WIDTH - MARGIN, HEIGHT - butGenPrev->h());
+#endif // _DEBUG
 	}
 	mainwin->end();
 	mainwin->show(argc, argv);

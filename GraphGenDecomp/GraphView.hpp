@@ -1,5 +1,9 @@
 #include "../GUI_facilities.h"
 
+/*开发记录：
+	2020 / 12 / 24 ~					接口
+*/
+
 class GraphView : public Fl_Widget {
 	
 	map<int, vector<GraphCommon::edge>> adjGraph;

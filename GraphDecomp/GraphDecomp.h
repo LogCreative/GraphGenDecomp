@@ -491,12 +491,13 @@ public:
 	// 输出节点分配，便于验证
 	string OuputPartitions() const;
 
+	// 初始化邻接矩阵
+	void initialAdjMat();
+
 protected:
 	map<int, nodeStruct> adjMat;			// 邻接矩阵
 	queue<set<int>> partitions;				// 节点分配
 
-	// 初始化邻接矩阵
-	void initialAdjMat();
 	// 得到损失矩阵的值
 	inline double getCostValue(int a, int b);
 
