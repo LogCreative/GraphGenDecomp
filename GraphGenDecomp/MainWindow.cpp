@@ -1,9 +1,6 @@
 // 主窗口
 
-//#include "../GUI_facilities.h"
-#include "../GraphGen/GraphGen.h"
-#include "../GraphDecomp/GraphDecomp.h"
-#include "GraphView.hpp"            // Contains GUI_Facilities.h
+#include "GraphView.hpp"            // Contains All Headers
 
 // Tab Generator
 Fl_Input* G_MfilenameG = NULL;
@@ -38,6 +35,26 @@ Fl_Multiline_Input* O_FinderUtil = NULL;
 // GraphView
 GraphView* GV = NULL;
 Fl_Check_Button* I_AutoGen = NULL;
+Fl_Check_Button* I_NodeLabel = NULL;
+
+void globalRefresh() {
+    if (strcmp(I_MainDilimeter->text(), "space") == 0) R_DILIMETER = ' ';
+    else if (strcmp(I_MainDilimeter->text(), "comma") == 0)
+        R_DILIMETER = ',';
+    DECOMPFIL = I_SubFileModifier->value();
+    OPTFIL = I_OptFileModifier->value();
+    R_PREFIX = strlen(I_MainNodeModifier->value()) == 0 ? '\0' : I_MainNodeModifier->value()[0];
+}
+
+void MainPrev() {
+    globalRefresh();
+    GV->RefreshView(G_Mfilename->value());
+}
+
+void OptPrev() {
+    globalRefresh();
+    GV->RefreshView(G_Sfilename->value(), OPTFIL);
+}
 
 void PickFileG_CB(Fl_Widget*, void*) {
     // Create native chooser
@@ -87,8 +104,11 @@ void Gen_CB(Fl_Widget*, void*) {
         gg.NewGraph(parseInt(I_LineCount->value()), ((nodeRatio < 0 || nodeRatio > 1) ? -1 : nodeRatio));
     else if (strcmp(I_ModeChoice->text(), "append") == 0) gg.AppendGraph(parseInt(I_LineCount->value()));
 
-}
+    G_Mfilename->value(G_MfilenameG->value());          // 传递参数
+    if (I_AutoGen->value())
+        MainPrev();
 
+}
 
 void PickFile_CB(Fl_Widget*, void*) {
     // Create native chooser
@@ -135,14 +155,6 @@ void PickDir_CB(Fl_Widget*, void*) {
     }
 }
 
-void globalRefresh() {
-    if (strcmp(I_MainDilimeter->text(), "space") == 0) R_DILIMETER = ' ';
-    else if (strcmp(I_MainDilimeter->text(), "comma") == 0)
-        R_DILIMETER = ',';
-    DECOMPFIL = I_SubFileModifier->value();
-    OPTFIL = I_OptFileModifier->value();
-}
-
 void butCheck_CB(Fl_Widget*, void*) {
     GraphDecomp gdc(parseInt(I_DecompSize->value()), G_Mfilename->value(), G_Sfilename->value());
     globalRefresh();
@@ -170,7 +182,6 @@ void butDecomp_CB(Fl_Widget*, void*) {
     else if (strcmp(I_DecompAlg->text(), "medium") == 0) _sol = onepass;
     else if (strcmp(I_DecompAlg->text(), "bfs") == 0) _sol = bfs;
     else if (strcmp(I_DecompAlg->text(), "order") == 0) _sol = rough;
-    R_PREFIX = strlen(I_MainNodeModifier->value()) == 0 ? '\0' : I_MainNodeModifier->value()[0];
 
     globalRefresh();
 
@@ -189,6 +200,9 @@ void butDecomp_CB(Fl_Widget*, void*) {
     auto c = const_cast<char*>(effstr.c_str());
     boxEff->copy_label(c);
     boxEff->redraw_label();
+
+    if (I_AutoGen->value())
+        OptPrev();
 }
 
 void Reach_CB(Fl_Widget*, void*) {
@@ -207,8 +221,17 @@ void Shortest_CB(Fl_Widget*, void*) {
     O_FinderUtil->value(gds.ShortestPath(parseInt(I_NodeStart->value()), parseInt(I_NodeEnd->value())).c_str());
 }
 
-void GenPrev_CB(Fl_Widget*, void*) {
-    
+void MainPrev_CB(Fl_Widget*, void*) {
+    MainPrev();
+}
+
+void OptPrev_CB(Fl_Widget*, void*) {
+    OptPrev();
+}
+
+void NodeLabel_CB(Fl_Widget*, void*) {
+    GV->label = I_NodeLabel->value();
+    GV->redraw();
 }
 
 int main(int argc, char** argv) {
@@ -336,13 +359,21 @@ int main(int argc, char** argv) {
 
             I_MainNodeModifier = new Fl_Input(PADDING + 120, groupMainPara->y() + MARGIN, 100, 25, "Node Modifier");
             I_MainNodeModifier->tooltip("The node modifier of the main graph file.");
+#ifdef _DEBUG
+            I_MainNodeModifier->value("");
+#else
             I_MainNodeModifier->value("P");
+#endif // _DEBUG
 
             I_MainDilimeter = new Fl_Choice(PADDING + 120, I_MainNodeModifier->y() + MARGIN * 2.5, 100, 25, "Edge Dilimeter");
             I_MainDilimeter->tooltip("The edge dilimeter of the main graph file.");
             I_MainDilimeter->add("space");
             I_MainDilimeter->add("comma");
+#ifdef _DEBUG
+            I_MainDilimeter->value(1);
+#else
             I_MainDilimeter->value(0);
+#endif // _DEBUG
 
             groupMainPara->end();
 
@@ -441,14 +472,19 @@ int main(int argc, char** argv) {
         Fl_Group::current()->resizable(t);
 
 #ifdef _DEBUG
-        Fl_Button* butGenPrev = new Fl_Button(t->x() + t->w() + MARGIN, t->y(), 100, 20, "Preview Gen");
-        butGenPrev->callback(GenPrev_CB);
+        Fl_Button* butMainPrev = new Fl_Button(t->x() + t->w() + MARGIN, t->y(), 100, 20, "Preview Main");
+        butMainPrev->callback(MainPrev_CB);
 
-        Fl_Button* butOptPrev = new Fl_Button(butGenPrev->x() + butGenPrev->w() + MARGIN, t->y(), 100, 20, "Preview Opt");
+        Fl_Button* butOptPrev = new Fl_Button(butMainPrev->x() + butMainPrev->w() + MARGIN, t->y(), 100, 20, "Preview Opt");
+        butOptPrev->callback(OptPrev_CB);
 
         I_AutoGen = new Fl_Check_Button(butOptPrev->x() + butOptPrev->w() + MARGIN, butOptPrev->y(), 100, 20, "Auto Preview");
 
-        GV = new GraphView(butGenPrev->x(), butGenPrev->y() + butGenPrev->h(), FULLWIDTH - WIDTH - MARGIN, HEIGHT - butGenPrev->h());
+        I_NodeLabel = new Fl_Check_Button(I_AutoGen->x() + I_AutoGen->w() + MARGIN, I_AutoGen->y(), 100, 20, "Label Nodes");
+        I_NodeLabel->value(1);
+        I_NodeLabel->callback(NodeLabel_CB);
+
+        GV = new GraphView(butMainPrev->x(), butMainPrev->y() + butMainPrev->h(), FULLWIDTH - WIDTH - MARGIN, HEIGHT - butMainPrev->h());
 #endif // _DEBUG
 	}
 	mainwin->end();

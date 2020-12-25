@@ -270,9 +270,11 @@ Kerninghan-Lin
 \end{equation}
 
 \textbf{损失缩减量}定义为：
-\begin{equation}
-    g_{ab} = D_a + D_b - 2c_{ab}
-\end{equation}
+\begin{align}
+    g_{ab} &= T - T^\prime \nonumber\\
+    &= z + E_a + E_b - c_{ab} - (z + I_a + I_b + c_{ab}) \nonumber\\
+    &= D_a + D_b - 2c_{ab} 
+\end{align}
 
 可以设置算法的猛烈程度
 \texttt{DecompSol}，来影响分解时间和分解效果，对于大规模运算集会有显著的影响：
