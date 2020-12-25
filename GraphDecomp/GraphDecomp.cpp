@@ -277,15 +277,15 @@ void Decomposer::optimizeParts(set<int>& A, set<int>& B) {
 				}
 				Gtmp += gain[i];
 			}
+			if (G <= 0)
+				break;
 			for (int l = 0; l <= k; ++l) {
 				A.erase(ak[l]);
 				B.insert(ak[l]);
 				B.erase(bk[l]);
 				A.insert(bk[l]);
 			}
-			if (sol == onepass)
-				break;
-		} while (G > 0);
+		} while (sol != onepass);
 	}
 }
 
