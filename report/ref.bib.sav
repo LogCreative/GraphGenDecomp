@@ -1,0 +1,13 @@
+% Encoding: UTF-8
+
+@Article{kl,
+  author  = {B. W. Kerninghan and S. Lin},
+  journal = {The Bell System Technical Journal},
+  title   = {An Efficient Heuristic Procedure for Partitioning Graphs},
+  year    = {1970},
+  month   = feb,
+  pages   = {291-307},
+  url     = {https://ieeexplore.ieee.org/document/6771089/},
+}
+
+@Comment{jabref-meta: databaseType:bibtex;}

@@ -17,6 +17,8 @@
 #include <FL/Fl_Group.H>
 #include <FL/Fl_Choice.H>
 #include <FL/fl_draw.H>
+#include <FL/Fl_Check_Button.H>
+#include <FL/Fl_Help_View.H>
 
 //------------------------------------------------------------------------------
 

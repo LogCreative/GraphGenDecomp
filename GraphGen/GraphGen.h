@@ -19,7 +19,7 @@
 //#include <boost/random.hpp>
 
 enum nodeType { continuous, discrete };					// 点的生成类型：连续的，离散的
-enum edgeType { Tree, Graph };		// 边的生成类型：树，图，带重边的图
+enum edgeType { Tree, Graph };		// 边的生成类型：树，图
 enum isoType { Single, Multi };		// 连通图类型：单个，多个
 
 extern int MAX_INCREASEMENT;	// 节点生成时的最大递增量
@@ -78,7 +78,7 @@ public:
 	// 析构
 	~GraphGen();
 	// 新创建一个 x 行输入的图文件
-	void NewGraph(int x);
+	void NewGraph(int x, double prop = -1);
 	// 向一个图文件中追加 y 行
 	void AppendGraph(int y);
 private:
@@ -92,7 +92,7 @@ private:
 	set<int> visitedNode;		// 公用的访问过节点
 
 	// 节点生成
-	void genNode(int quantity, fstream& fs);
+	void genNode(int quantity, fstream& fs, int oline = -1);
 	// 有向边生成
 	void genEdge(int quantity, fstream& fs);
 	// 生成随机数

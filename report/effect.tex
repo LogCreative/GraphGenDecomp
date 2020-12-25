@@ -1,0 +1,16 @@
+\begin{tikzpicture}
+\pgfplotstableread [row sep=crcr]
+{scale hardest harder medium bfs order\\100 4.5 1.8 1.8 1.5 1\\200 1.836477987 1.871794872 1.544973545 1.061818182 1\\300 1.722222222 1.64665127 1.473140496 1.190317195 1\\500 1.551309271 1.501369863 1.311004785 1.281871345 1\\1000 1.751718869 1.746382331 1.438745098 1.376970425 1\\2000 2.0928277 2.009021842 1.654457769 1.221831833 1\\3000 2.227881723 2.291983122 1.742461736 1.262780348 1\\5000 1.908465831 1.94093311 1.61437736 1.389680633 1\\10000 8.131952564 8.563129127 2.756167342 1.514154272 1\\\\}
+{\value}
+\begin{semilogxaxis}[legend pos=north west,
+ylabel={Effect Improvement},
+xlabel={Scale},
+ymin=1]
+ \addplot+ [] table[y=hardest] {\value};
+ \addplot+ [] table[y=harder] {\value};
+\addplot+ [] table[y=medium] {\value};
+\addplot+ [] table[y=bfs] {\value};
+\addplot[red] table[y=order] {\value};
+\legend{hardest,harder,medium,bfs,order};
+\end{semilogxaxis}
+\end{tikzpicture}

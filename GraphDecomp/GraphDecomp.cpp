@@ -23,16 +23,20 @@ void GraphDecomp::ResetSubFolder() {
 	system(command_md.c_str());
 }
 
-string GraphDecomp::Decomp(DecompSol sol) {
+string GraphDecomp::Decomp(DecompSol sol, bool calc) {
 	fstream fs(mainDir, fstream::in);
 	if (!fs) error("Cannot open main graph file!");
 	
 	Decomposer decomp(n, fs, subDir, sol);
 	fs.close();
 
-	ev = decomp.Evaluate();
-	aw = decomp.GetAllWeights();
-	
+	if (calc) {
+		if (sol == bfs)
+			decomp.initialAdjMat();	// bfs 破坏了邻接矩阵 需要重新载入
+		ev = decomp.Evaluate();
+		aw = decomp.GetAllWeights();
+	}
+
 	return decomp.OuputPartitions();
 }
 
@@ -48,6 +52,12 @@ bool GraphDecomp::Check() {
 	return orignalChecker == decompChecker 
 		&& decompChecker == optChecker
 		;
+}
+
+pair<bool, string> GraphDecomp::Evaluate(bool _raw) {
+	Evaluator ev(mainDir, subDir, _raw);
+	ev.EvaluateWeights();
+	return make_pair(ev.Check(), ev.OuputPartitions());
 }
 
 string GraphDecomp::ReachablePoints(int node) {
@@ -132,7 +142,7 @@ Decomposer::Decomposer(int _n, fstream& fs, string _subDir, DecompSol _sol) {
 	Kerninghan_Lin();
 }
 
-void Decomposer::initialAdjMat() {
+void ValueProcessor::initialAdjMat() {
 	adjMat.clear();
 	for (auto n : adjListGraph) {
 		nodeStruct ns(n.first);
@@ -142,21 +152,10 @@ void Decomposer::initialAdjMat() {
 	}
 }
 
-void Decomposer::initialCostMat() {
-	costMat.clear();
-	for (auto i : adjMat) 
-		for (auto j : adjMat) 
-			costMat[i.first][j.first] = 
-			costMat[j.first][i.first] = 
-				adjMat[i.first].getConnWeight(j.first)
-				+ adjMat[j.first].getConnWeight(i.first);
-}
-
-double Decomposer::getCostValue(int i, int j) {
-	if (costMat.find(i) == costMat.end() ||
-		costMat[i].find(j) == costMat[i].end())
-		return 0;
-	return costMat[i][j];
+inline double ValueProcessor::getCostValue(int a, int b) {
+	if (a == b)
+		return adjMat[a].adjMatCol[b];
+	return adjMat[a].adjMatCol[b] + adjMat[b].adjMatCol[a];
 }
 
 void Decomposer::divide(set<int> S) {
@@ -240,16 +239,20 @@ void Decomposer::optimizeParts(set<int>& A, set<int>& B) {
 			vector<int> bk;
 			vector<double> gain;
 			int size = B.size();
-			while (--size) {
+			if (sol == onepass) { 
+				size *= 0.25;
+				if (size < 1) 
+					size = 1;
+			}
+			while (size--) {
 				int amax;
 				int bmax;
 				double gainLocal;
-				if (sol == ll) {
+				if (sol == onepass || sol == ll) {
 					amax = getMaxDinSet(Ap);
 					bmax = getMaxDinSet(Bp);
 				}
 				else if (sol == kl) {
-					 // 选择三个备选即可基本取优
 					pair<int, int> selecPair = getMaxGainPair(Ap, Bp);
 					amax = selecPair.first;
 					bmax = selecPair.second;
@@ -274,14 +277,66 @@ void Decomposer::optimizeParts(set<int>& A, set<int>& B) {
 				}
 				Gtmp += gain[i];
 			}
+			if (G <= 0)
+				break;
 			for (int l = 0; l <= k; ++l) {
 				A.erase(ak[l]);
 				B.insert(ak[l]);
 				B.erase(bk[l]);
 				A.insert(bk[l]);
 			}
-		} while (G > 0);
+		} while (sol != onepass);
 	}
+}
+
+int Decomposer::getMaxConnWeightNode() {
+	int maxNode = RESNODE;
+	double maxWeight = RESNODE;
+	for (auto n : connNodes)
+		if (adjMat[n].totalWeight > maxWeight) {
+			maxNode = n;
+			maxWeight = adjMat[n].totalWeight;
+		}
+	return maxNode;
+}
+
+void Decomposer::insertPartTmp(int input) {
+	if (connNodes.find(input) != connNodes.end()) {
+		connNodes.erase(input);
+		partTmp.insert(input);
+		if (partTmp.size() == n) {
+			partitions.push(partTmp);
+			partTmp.clear();
+		}
+	}
+}
+
+void Decomposer::BFS() {
+
+	queue<int> visitQueue;
+
+	while (!connNodes.empty()) {
+		visitQueue.push(getMaxConnWeightNode());
+		while (!visitQueue.empty()) {
+			int tn = visitQueue.front();
+			visitQueue.pop();
+			insertPartTmp(tn);
+
+			int nn;
+			while ((nn = adjMat[tn].getMaxLinkedNode()) != RESNODE) {
+				insertPartTmp(nn);
+				if (connNodes.find(nn) != connNodes.end())
+					visitQueue.push(nn);
+				adjMat[tn].removeN2N(nn);
+			}
+		}
+	}
+
+	if (!partTmp.empty())			// 可能还有剩余
+		partitions.push(partTmp);
+
+	allocateIsoNodes();
+	outputSubAdjGraphs();
 }
 
 void Decomposer::Kerninghan_Lin() {
@@ -290,12 +345,13 @@ void Decomposer::Kerninghan_Lin() {
 	initialAdjMat();
 
 	// 初始化损失矩阵
-	initialCostMat();
+ 	//initialCostMat();
 
 	// 分配连通节点
-	set<int> connNodes;
 	for (auto n : adjListGraph)
 		connNodes.insert(n.first);
+
+	if (sol == bfs) { BFS();  return; }
 	
 	// 每一步都是局部最优
 	// 最终可能是全局最优
@@ -338,7 +394,7 @@ void Decomposer::allocateIsoNodes() {
 		partitions.push(isoSet);
 }
 
-string Decomposer::OuputPartitions() const {
+string ValueProcessor::OuputPartitions() const {
 	stringstream ss;
 	queue<set<int>> outputPartq = partitions;
 	fstream partfs(subDir + "\\partitions.txt", fstream::out);
@@ -374,7 +430,7 @@ void Decomposer::outputSubAdjGraphs() const {
 	}
 }
 
-double Decomposer::Evaluate(){
+double ValueProcessor::Evaluate(){
 	// 只需要考虑cost
 	// 每两个子集进行比较
 	double loss = 0;
@@ -388,17 +444,17 @@ double Decomposer::Evaluate(){
 
 	for (auto i = partitionSet.begin(); i != partitionSet.end(); ++i) {
 		auto j = i;
-		++j;
+		++j;			// 不同的集合
 		for (; j != partitionSet.end(); ++j)
-			for (auto ik : *i)
-				for (auto jk : *j)
-					loss += getCostValue(ik, jk);
+			for (auto ik = i->begin(); ik != i->end(); ++ik)
+				for (auto jk = j->begin(); jk != j->end(); ++jk)
+					loss += getCostValue(*ik, *jk);
 	}
 
 	return loss;
 }
 
-double Decomposer::GetAllWeights() {
+double ValueProcessor::GetAllWeights() {
 	double total = 0;
 
 	// 所有节点 = 孤立节点（无连接权重） + 连通节点
@@ -406,10 +462,13 @@ double Decomposer::GetAllWeights() {
 	for (auto n : adjListGraph)
 		connNodes.insert(n.first);
 
-	for (auto i : connNodes)
-		for (auto j : connNodes)
-			total += adjMat[i].getConnWeight(j);
-
+	// 改为使用损失矩阵计算
+	for (auto i = connNodes.begin(); i != connNodes.end(); ++i) {
+		auto j = i;
+		for (; j != connNodes.end(); ++j)
+			total += getCostValue(*i, *j);
+	}
+	
 	return total;
 }
 
@@ -421,11 +480,11 @@ Optimizer::Optimizer(int _n, string _subDir) {
 	SUFFIX = OPTFIL;
 
 	// 遍历文件
-	getFiles(_subDir, ".txt", files, DECOMPFIL);
+	getFiles(_subDir, ".txt", decomp_files, DECOMPFIL);
 }
 
 void Optimizer::getNodesAllocation() {
-	for (auto f = files.begin(); f != files.end(); ++f) {
+	for (auto f = decomp_files.begin(); f != decomp_files.end(); ++f) {
 		fstream subfs(*f, fstream::in);
 		fileNo cur = parseFileInt(*f);
 		FileUnit fu;
@@ -441,7 +500,7 @@ void Optimizer::allocateEdges() {
 	map<fileNo, set<int>> isoNodes;
 	map<fileNo, vector<edge>> writingFileMap;
 	set<int> startNodes;
-	for (auto f = files.begin(); f != files.end(); ++f) {
+	for (auto f = decomp_files.begin(); f != decomp_files.end(); ++f) {
 		fstream ifs(*f, fstream::in);
 		fileNo curFile = parseFileInt(*f);
 
@@ -505,8 +564,8 @@ void Optimizer::Optimize() {
 Optimizer::~Optimizer() = default;
 
 
-Checker::Checker(string _subDir, string _filter) {
-	if (_filter == "") {
+Checker::Checker(string _subDir, string _filter, bool _raw) {
+	if (_filter == "") {			// 如果没有过滤器，一定是外部文件
 		fstream fs(_subDir, fstream::in);
 		readRawFile(fs);
 		fs.close();
@@ -518,7 +577,10 @@ Checker::Checker(string _subDir, string _filter) {
 		getFiles(subDir, fileExtension, files, _filter);
 		for (auto f = files.begin(); f != files.end(); ++f) {
 			fstream cf(*f, fstream::in);
-			readFile(cf, true);
+			if (_raw)
+				readRawFile(cf);
+			else
+				readFile(cf, true);
 			cf.close();
 		}
 	}
@@ -565,14 +627,106 @@ bool operator==(Checker const& l, Checker const& r) {
 
 Checker::~Checker() = default;
 
+Evaluator::Evaluator(string _mainDir, string _subDir, bool _raw):
+	mainDir(_mainDir), raw(_raw)
+{
+	subDir = _subDir;
+}
+
+void Evaluator::getPartition() {
+	map<fileNo, set<int>> fileNodeMap;
+
+	map<int, fileNo> beginNodes;
+	map<int, fileNo> leafNodes;
+	map<int, fileNo> lockedNodes;		// 被锁定的分配
+
+	for (auto f = decomp_files.begin(); f != decomp_files.end(); ++f) {
+		fstream fs(*f, fstream::in);
+		fileNo curFile = parseFileInt(*f);
+
+		while (!fs.eof()) {
+			string rl;
+			getline(fs, rl);
+			if (rl == "") break;
+			stringstream rs(rl);
+			if (find(rl.begin(), rl.end(), DILIMETER) == rl.end()) {
+				// 如果是以节点形式存储的，就按照对应文件分配
+				node n;
+				rs >> n;
+				lockedNodes[n.data] = curFile;
+			}
+			else {
+				edge e;
+				rs >> e;
+				if (beginNodes.find(e.start) == beginNodes.end())
+					beginNodes[e.start] = curFile; // 起点为第一次出现
+				leafNodes[e.end] = curFile;		// 后面出现的会被前面覆盖
+			}
+		}
+
+		fs.close();
+	}
+
+	// 初始化存储器为两个集合的并集，起始节点全部输入，叶子为剩余的自身差集
+	set<int> intersect;
+	for (auto b : beginNodes) {
+		if (leafNodes.find(b.first) != leafNodes.end())
+			intersect.insert(b.first);
+		if (lockedNodes.find(b.first) == lockedNodes.end())
+			fileNodeMap[b.second].insert(b.first);
+	}
+	for (auto l : leafNodes)
+		if (intersect.find(l.first) == intersect.end()
+			&& lockedNodes.find(l.first) == lockedNodes.end())
+			fileNodeMap[l.second].insert(l.first);
+	for (auto n : lockedNodes)
+		fileNodeMap[n.second].insert(n.first);
+
+	// 输入分配结果
+	for (auto fn = fileNodeMap.begin(); fn != fileNodeMap.end(); ++fn)
+		partitions.push(fn->second);
+
+}
+
+bool Evaluator::Check() {
+	Checker orignalChecker(mainDir);
+	Checker decompChecker(subDir, DECOMPFIL, raw);
+	return orignalChecker == decompChecker;
+}
+
+void Evaluator::EvaluateWeights() {
+	getFiles(subDir, ".txt", decomp_files, DECOMPFIL);
+
+	for (auto f = decomp_files.begin(); f != decomp_files.end(); ++f) {
+		fstream rfs(*f, fstream::in);
+		if (raw)
+			readRawFile(rfs);
+		else
+			readFile(rfs);
+		rfs.close();
+	}
+
+	// 需要得到分配信息
+	getPartition();
+
+	initialAdjMat();
+	//initialCostMat();
+
+	ev = Evaluate();
+	aw = GetAllWeights();
+
+}
+
+Evaluator::~Evaluator() = default;
+
 Finder::Finder(string _subDir) {
 	subDir = _subDir;
 	SUFFIX = OPTFIL;
-	getFiles(subDir, ".txt", files, SUFFIX);
+	getFiles(subDir, ".txt", opt_files, SUFFIX);
 }
 
 fileNo Finder::findStoredFile(int node) {
-	for (auto f = files.begin(); f != files.end(); ++f) {
+	for (auto f = opt_files.begin(); f != opt_files.end(); ++f) {
 		fileNo cur = parseFileInt(*f);
 		if (subGraphs.find(cur) == subGraphs.end())
 			loadSubgraph(cur);			// 子图尚未被加载
@@ -668,8 +822,7 @@ string Finder::ShortestPath(int start, int end) {
 	fileNo fin = findStoredFile(end);
 
 	if (fin == 0){
-		error("Node " + to_string(end) + " is not stored!");
-		return "INF";
+		return "Node " + to_string(end) + " is not stored!";
 	}
 
 	distance[start] = 0;
