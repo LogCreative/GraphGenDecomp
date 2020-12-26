@@ -75,6 +75,11 @@ string GraphDecomp::ShortestPath(int start, int end) {
 	return pfd.ShortestPath(start, end);
 }
 
+pair<queue<GraphCommon::node>, string> GraphDecomp::ShortestPathUI(int start, int end) {
+	Finder pfd(subDir);
+	return pfd.getShortestPath(start, end);
+}
+
 GraphDecomp::~GraphDecomp() = default;
 
 string Processor::getFileString(fileNo label) const{
@@ -828,35 +833,31 @@ set<GraphCommon::node> Finder::getReachableNode(int node) {
 	return reachableNodesO;
 }
 
-void Finder::prtPath(int cur, int target, int finish) {
-	if (cur != target) prtPath(prev[cur], target, finish);
-	pathss << cur << (cur == finish ? "\n" : "->");
+void Finder::prtPath(node cur, int target, int finish) {
+	if (cur.data != target) prtPath(prev[cur.data], target, finish);
+	pathss << cur.data << (cur.data == finish ? "\n" : "->");
+	shortestPathO.push(cur);
 }
 
 string Finder::ShortestPath(int start, int end) {
-	// dijkstra
-	fileNo fin = findStoredFile(end);
-
-	if (fin == 0){
-		return "Node " + to_string(end) + " is not stored!";
-	}
-
-	distance[start] = 0;
-	prev[start] = start;
-
 	// 分布式 SPFA 算法
 	// Shortest Path Faster Alogrithm
 	// SPFA 在形式上和BFS非常类似，不同的是BFS中一个点出了队列就不可能重新进入队列，但是SPFA中一个点可能在出队列之后再次被放入队列，也就是一个点改进过其它的点之后，过了一段时间可能本身被改进，于是再次用来改进其它的点，这样反复迭代下去。
 
 	queue<pair<fileNo, queue<int>>> visitFileQ;		// 文件访问队列
 	fileNo init = findStoredFile(start);
+	
+
 	if (init <= 0) {
 		if (init == 0)								// 没有被存储 
 			return "Node " + to_string(start) + " is not stored!";
 		return "INF";									// 或者是孤立节点
 	}
-	if (findStoredFile(end) == 0)
+	fileNo fin = findStoredFile(end);
+	if (fin == 0)
 		return "Node " + to_string(end) + " is not stored!"; // 没有被存储 
+	distance[start] = 0;
+	prev[start] = node(start, init);
 
 	visitFileQ.push(make_pair(init, queue<int>({ start })));
 
@@ -883,7 +884,7 @@ string Finder::ShortestPath(int start, int end) {
 					(distance.find(toNode) == distance.end() ||
 						distance[tn] + e.weight < distance[toNode])) {
 					distance[toNode] = distance[tn] + e.weight;
-					prev[toNode] = tn;
+					prev[toNode] = node(tn, fq.first);
 					if (e.end != -1) subVisitq.push(e.end);
 					else visitFileMap[tarNo].push(e.targetNode);
 				}
@@ -900,9 +901,14 @@ string Finder::ShortestPath(int start, int end) {
 	}
 
 	pathss.clear();
-	prtPath(end, start, end);
+	prtPath(node(end, fin), start, end);
 
 	return "Length:" + to_string(distance[end]) + '\n' + pathss.str();
+}
+
+pair<queue<GraphCommon::node>, string> Finder::getShortestPath(int start, int end) {
+	string ostr = ShortestPath(start, end);
+	return make_pair(shortestPathO, ostr);
 }
 
 Finder::~Finder() = default;

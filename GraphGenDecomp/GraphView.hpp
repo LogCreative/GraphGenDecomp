@@ -212,6 +212,7 @@ public:
     
     int label = 2;                                                  // 节点标注状态
     set<GraphCommon::node> nodeR;       // 可达点标记 
+    queue<GraphCommon::node> pathR;     // 最短路径
 private:
     map<fileNo, map<int, pair<float, float>>> nodeCoord;	        // 存储节点坐标
     map < fileNo, map<int, vector<GraphCommon::edge>>> edgeSave;    // 存储文件边集
@@ -358,34 +359,48 @@ private:
             for (auto n = fg.second.begin(); n != fg.second.end(); ++n)
                 drawNode(fg.first, n->first);
     }
+    
+    void drawEdge(GraphCommon::edge e, fileNo startF, bool stress = false) {
+        // 按照权重涂色
+        float eWeight = (maxEdgeWeight == 0 ? 1.0 : e.weight / maxEdgeWeight);
+        if (dim) eWeight *= 0.5;
+        if (stress) eWeight = 1.0;
+
+        pair<int, int> beg = getNodeCanvasCoord(nodeCoord[startF][e.start], fborder[startF]);
+
+        // end 可能为虚节点
+        pair<int, int> fin;
+        if (e.end == -1) {
+            fileNo tarFile = parseInt(e.targetFile);
+            fl_color(fl_color_average(Color::yellow, Color::black, eWeight));
+            fin = getNodeCanvasCoord(nodeCoord[tarFile][e.targetNode], fborder[tarFile]);
+        }
+        else {
+            fl_color(fl_color_average(Color::white, Color::black, eWeight));
+            fin = getNodeCanvasCoord(nodeCoord[startF][e.end], fborder[startF]);
+        }
+
+        // 划线
+        fl_line(beg.first, beg.second, fin.first, fin.second);
+    }
+
+    void drawEdge(GraphCommon::node start, GraphCommon::node end, bool stress = false) {
+        //find the edge
+        GraphCommon::edge de;
+        for (auto e : edgeSave[start.file][start.data])
+            if (e.end == end.data || e.targetNode == end.data) {
+                de = e;
+                break;
+            }
+        drawEdge(de, start.file, stress);
+    }
 
     void drawEdge() {
         for (auto fg : nodeCoord) {
-
             // 画出画布下的边
             for (auto n = edgeSave[fg.first].begin(); n != edgeSave[fg.first].end(); ++n)
-                for (auto e : n->second) {
-                    // 按照权重涂色
-                    float eWeight = (maxEdgeWeight == 0 ? 1.0 : e.weight / maxEdgeWeight);
-                    if (dim) eWeight *= 0.5;
-
-                    pair<int, int> beg = getNodeCanvasCoord(fg.second[n->first], fborder[fg.first]);
-
-                    // end 可能为虚节点
-                    pair<int, int> fin;
-                    if (e.end == -1) {
-                        fileNo tarFile = parseInt(e.targetFile);
-                        fl_color(fl_color_average(Color::yellow, Color::black, eWeight));
-                        fin = getNodeCanvasCoord(nodeCoord[tarFile][e.targetNode], fborder[tarFile]);
-                    }
-                    else {
-                        fl_color(fl_color_average(Color::white, Color::black, eWeight));
-                        fin = getNodeCanvasCoord(fg.second[e.end], fborder[fg.first]);
-                    }
-
-                    // 划线
-                    fl_line(beg.first, beg.second, fin.first, fin.second);
-                }
+                for (auto e : n->second)
+                    drawEdge(e, fg.first);
 
         }
     }
@@ -395,16 +410,35 @@ private:
             drawNode(n->file, n->data);
     }
 
+    void drawPath() {
+        auto pathRtmp = pathR;
+        auto prev = pathRtmp.front();
+        pathRtmp.pop();
+
+        while (!pathRtmp.empty()) {
+            auto next = pathRtmp.front();
+            pathRtmp.pop();
+
+            drawEdge(prev, next, true);
+            drawNode(prev.file, prev.data);
+            prev = next;
+        }
+
+        drawNode(prev.file, prev.data);
+    }
+
 	void draw() {
 		fl_rectf(x(), y(), w(), h(), Color::black);
         refreshFborder();
-        if (!nodeR.empty()) dim = true;
+        if (!nodeR.empty() || !pathR.empty()) dim = true;
         drawEdge();
         if (label > 0)
             drawNodes();
         dim = false;
         if (!nodeR.empty())
             drawRNodes();
+        if (!pathR.empty())
+            drawPath();
 	}
 
 };

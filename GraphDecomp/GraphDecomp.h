@@ -293,8 +293,8 @@ public:
 				rs >> e;
 				insertNode(e.start);
 				insertNode(e.end);
-				if (e.start == -1 || e.end == -1)
-					insertNode(e.targetNode);			// 虚节点也需要存储
+				//if (e.start == -1 || e.end == -1)
+					//insertNode(e.targetNode);			// 虚节点也需要存储
 			}
 		}
 	}
@@ -450,6 +450,7 @@ public:
 	// - 指定两个点，输出最短路径
 	// 如果指定的节点不存在，报错即可
 	string ShortestPath(int start, int end);
+	pair<queue<node>,string> ShortestPathUI(int start, int end);
 
 	// 重设子文件夹
 	void ResetSubFolder();
@@ -618,11 +619,13 @@ public:
 	set<node> getReachableNode(int node);
 	// 最短路径
 	string ShortestPath(int start, int end);
+	// 最短路径(UI)
+	pair<queue<GraphCommon::node>,string> getShortestPath(int start, int end);
 private:
 	vector<string> opt_files;				// 优化后的子图文件
 	map < fileNo, FileUnit > subGraphs;		// 子图
 	//queue<pair<fileNo, queue<int>>> visitFileQueue;			// 文件访问队列以及需要访问的节点
-	map<int, int> prev;						// 前继节点
+	map<int, node> prev;						// 前继节点
 	set<int> reachableNodes;				// 可达点集合
 	map<int, double> distance;				// 距离映射
 
@@ -637,9 +640,10 @@ private:
 	string prtReachableNodes() const;
 
 	// 打印路径
-	void prtPath(int cur, int target, int finish);
+	void prtPath(node cur, int target, int finish);
 
 	set<node> reachableNodesO;				// （为UI使用的）可达点集
+	queue<node> shortestPathO;				// (为UI使用的) 最短路径
 };
 
 

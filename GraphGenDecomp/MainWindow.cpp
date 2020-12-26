@@ -45,10 +45,8 @@ void globalRefresh() {
     DECOMPFIL = I_SubFileModifier->value();
     OPTFIL = I_OptFileModifier->value();
     R_PREFIX = strlen(I_MainNodeModifier->value()) == 0 ? '\0' : I_MainNodeModifier->value()[0];
-}
-
-void ClearGV() {
     GV->nodeR.clear();
+    while (!GV->pathR.empty()) GV->pathR.pop();
 }
 
 void MainPrev() {
@@ -56,8 +54,8 @@ void MainPrev() {
     GV->RefreshView(G_Mfilename->value());
 }
 
-void OptPrev() {
-    globalRefresh();
+void OptPrev(bool dim = false) {
+    if(!dim) globalRefresh();
     GV->RefreshView(G_Sfilename->value(), OPTFIL);
 }
 
@@ -111,7 +109,6 @@ void Gen_CB(Fl_Widget*, void*) {
 
     G_Mfilename->value(G_MfilenameG->value());          // ´«µÝ²ÎÊý
     if (I_AutoGen->value()) {
-        ClearGV();
         MainPrev();
     }
 
@@ -169,14 +166,16 @@ void butCheck_CB(Fl_Widget*, void*) {
     bool _raw = I_SubRaw->value();
     auto res = gdc.Evaluate(_raw);
 
-    O_Partition->value(res.second.c_str());
-    effp->update(ev / aw);
-
-    string effstr = to_string((int)ev) + '/' + to_string((int)aw);
-    effstr = (res.first ? "PASS " : "DIFF ") + effstr;
-    auto c = const_cast<char*>(effstr.c_str());
+    stringstream effstr;
+    double effper = ev / aw;
+    effp->update(effper);
+    effstr << (gdc.Check() ? "PASS " : "NOPASS ") << setiosflags(ios::fixed) << setprecision(1) << ev << '/' << aw;
+    string ostr = effstr.str();
+    auto c = const_cast<char*>(ostr.c_str());
     boxEff->copy_label(c);
     boxEff->redraw_label();
+
+    O_Partition->value(res.second.c_str());
 }
 
 void butDecomp_CB(Fl_Widget*, void*) {
@@ -213,7 +212,6 @@ void butDecomp_CB(Fl_Widget*, void*) {
     boxEff->redraw_label();
 
     if (I_AutoGen->value()) {
-        ClearGV();
         OptPrev();
     }
 }
@@ -222,6 +220,9 @@ void Reach_CB(Fl_Widget*, void*) {
     GraphDecomp gdr(parseInt(I_DecompSize->value()), G_Mfilename->value(), G_Sfilename->value());
 
     globalRefresh();
+
+    string sv = I_NodeStart->value();
+    if (sv == "") { O_FinderUtil->value("Please assign the start node!"); return; }
 
     set<GraphCommon::node> rns = gdr.ReachablePointsUI(parseInt(I_NodeStart->value()));
 
@@ -241,7 +242,7 @@ void Reach_CB(Fl_Widget*, void*) {
 
     if (I_AutoGen->value()) {
         GV->nodeR = rns;
-        OptPrev();
+        OptPrev(true);
     }
 }
 
@@ -250,16 +251,26 @@ void Shortest_CB(Fl_Widget*, void*) {
 
     globalRefresh();
 
-    O_FinderUtil->value(gds.ShortestPath(parseInt(I_NodeStart->value()), parseInt(I_NodeEnd->value())).c_str());
+    string sv = I_NodeStart->value();
+    string ev = I_NodeEnd->value();
+    if (sv == "") { O_FinderUtil->value("Please assign the start node!"); return; }
+    else if (ev == "") { O_FinderUtil->value("Please assign the end node!"); return; }
+    
+    auto spp = gds.ShortestPathUI(parseInt(sv), parseInt(ev));
+    O_FinderUtil->value(spp.second.c_str());
+
+    if (I_AutoGen->value()) {
+        GV->pathR = spp.first;
+        OptPrev(true);
+    }
+
 }
 
 void MainPrev_CB(Fl_Widget*, void*) {
-    ClearGV();
     MainPrev();
 }
 
 void OptPrev_CB(Fl_Widget*, void*) {
-    ClearGV();
     OptPrev();
 }
 
