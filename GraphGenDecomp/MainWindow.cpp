@@ -36,7 +36,7 @@ Fl_Box* O_Per = NULL;
 // GraphView
 GraphView* GV = NULL;
 Fl_Check_Button* I_AutoGen = NULL;
-Fl_Check_Button* I_NodeLabel = NULL;
+Fl_Choice* I_NodeLabel = NULL;
 
 void globalRefresh() {
     if (strcmp(I_MainDilimeter->text(), "space") == 0) R_DILIMETER = ' ';
@@ -479,8 +479,11 @@ int main(int argc, char** argv) {
         I_AutoGen = new Fl_Check_Button(butOptPrev->x() + butOptPrev->w() + MARGIN, butOptPrev->y(), 100, 20, "Auto Preview");
         I_AutoGen->value(1);
 
-        I_NodeLabel = new Fl_Check_Button(I_AutoGen->x() + I_AutoGen->w() + MARGIN, I_AutoGen->y(), 100, 20, "Label Nodes");
-        I_NodeLabel->value(1);
+        I_NodeLabel = new Fl_Choice(I_AutoGen->x() + I_AutoGen->w() + MARGIN + 80, I_AutoGen->y(), 150, 20, "Label Nodes");
+        I_NodeLabel->add("None");
+        I_NodeLabel->add("Node");
+        I_NodeLabel->add("Node + Label");
+        I_NodeLabel->value(2);
         I_NodeLabel->callback(NodeLabel_CB);
 
         GV = new GraphView(butMainPrev->x(), butMainPrev->y() + butMainPrev->h(), FULLWIDTH - WIDTH - MARGIN, HEIGHT - butMainPrev->h());

@@ -209,7 +209,7 @@ public:
         redraw();
 	}
 
-    bool label = true;                                              // 是否标注
+    int label = 2;                                                  // 节点标注状态
 private:
     map<fileNo, map<int, pair<float, float>>> nodeCoord;	        // 存储节点坐标
     map < fileNo, map<int, vector<GraphCommon::edge>>> edgeSave;    // 存储文件边集
@@ -332,9 +332,28 @@ private:
         }
     }
 
-    // 画出画布
-    void drawFrame() {
-        refreshFborder();
+    void drawNodes() {
+        for (auto fg : nodeCoord) {
+
+            // 画出画布下的节点
+            for (auto n = fg.second.begin(); n != fg.second.end(); ++n) {
+                // 按照连接权重涂色
+                float nWeight = (maxNodeWeight == 0 ? 1.0 : nodeWeight[fg.first][n->first] / maxNodeWeight);
+                fl_color(fl_color_average(Color::white, Color::black, nWeight));
+                auto ncoord = getNodeCanvasCoord(n->second, fborder[fg.first]);
+                fl_pie(ncoord.first - 3, ncoord.second - 3, 6, 6, 0, 360);
+                //标号
+                if (label == 2) {
+                    fl_color(Color::white);
+                    fl_draw(to_string(n->first).c_str(), ncoord.first, ncoord.second - 5);
+                }
+            }
+
+
+        }
+    }
+
+    void drawEdge() {
         for (auto fg : nodeCoord) {
 
             // 画出画布下的边
@@ -342,7 +361,7 @@ private:
                 for (auto e : n->second) {
                     // 按照权重涂色
                     float eWeight = (maxEdgeWeight == 0 ? 1.0 : e.weight / maxEdgeWeight);
-                    
+
 
                     pair<int, int> beg = getNodeCanvasCoord(fg.second[n->first], fborder[fg.first]);
 
@@ -364,27 +383,16 @@ private:
                     fl_line(beg.first, beg.second, fin.first, fin.second);
                 }
 
-            // 画出画布下的节点
-            for (auto n = fg.second.begin(); n != fg.second.end(); ++n) {
-                // 按照连接权重涂色
-                float nWeight = (maxNodeWeight == 0 ? 1.0 : nodeWeight[fg.first][n->first] / maxNodeWeight);
-                fl_color(fl_color_average(Color::white, Color::black, nWeight));
-                auto ncoord = getNodeCanvasCoord(n->second, fborder[fg.first]);
-                fl_pie(ncoord.first - 3, ncoord.second - 3, 6, 6, 0, 360);
-                //标号
-                if (label) {
-                    fl_color(Color::white);
-                    fl_draw(to_string(n->first).c_str(), ncoord.first, ncoord.second - 5);
-                }
-            }
-
-
         }
     }
 
+
 	void draw() {
 		fl_rectf(x(), y(), w(), h(), Color::black);
-        drawFrame();
+        refreshFborder();
+        drawEdge();
+        if (label > 0)
+            drawNodes();
 	}
 
 };
