@@ -342,7 +342,7 @@ private:
                 for (auto e : n->second) {
                     // 按照权重涂色
                     float eWeight = (maxEdgeWeight == 0 ? 1.0 : e.weight / maxEdgeWeight);
-                    fl_color(fl_color_average(Color::white, Color::black, eWeight));
+                    
 
                     pair<int, int> beg = getNodeCanvasCoord(fg.second[n->first], fborder[fg.first]);
 
@@ -350,10 +350,12 @@ private:
                     pair<int, int> fin;
                     if (e.end == -1) {
                         fileNo tarFile = parseInt(e.targetFile);
+                        fl_color(fl_color_average(Color::yellow, Color::black, eWeight));
                         fin = getNodeCanvasCoord(nodeCoord[tarFile][e.targetNode], fborder[tarFile]);
-                        fl_line_style(Line_style::dashdot);        // 虚边虚线
+                        fl_line_style(Line_style::solid);        // 虚边虚线
                     }
                     else {
+                        fl_color(fl_color_average(Color::white, Color::black, eWeight));
                         fin = getNodeCanvasCoord(fg.second[e.end], fborder[fg.first]);
                         fl_line_style(Line_style::solid);       // 实边实线
                     }
@@ -383,7 +385,6 @@ private:
 	void draw() {
 		fl_rectf(x(), y(), w(), h(), Color::black);
         drawFrame();
-        fl_line_style(Line_style::solid);
 	}
 
 };

@@ -31,6 +31,7 @@ Fl_Multiline_Input* O_Partition = NULL;
 Fl_Input* I_NodeStart = NULL;
 Fl_Input* I_NodeEnd = NULL;
 Fl_Multiline_Input* O_FinderUtil = NULL;
+Fl_Box* O_Per = NULL;
 
 // GraphView
 GraphView* GV = NULL;
@@ -190,16 +191,24 @@ void butDecomp_CB(Fl_Widget*, void*) {
     O_Partition->value(gd.Decomp(_sol, calc).c_str());
     gd.Optimize();
 
-    string effstr;
+    stringstream effstr;
+    double effper = ev / aw;
     if (calc) {
-        effp->update(ev / aw);
-        effstr = to_string((int)ev) + '/' + to_string((int)aw);
-        effstr = (gd.Check() ? "PASS " : "NOPASS ") + effstr;
+        effp->update(effper);
+        effstr << (gd.Check() ? "PASS " : "NOPASS ") << setiosflags(ios::fixed) << setprecision(1) << ev << '/' << aw;
     }
-    else effstr = (gd.Check() ? "PASS -/-" : "NOPASS -/-");
-    auto c = const_cast<char*>(effstr.c_str());
+    else effstr << (gd.Check() ? "PASS -/-" : "NOPASS -/-");
+    string ostr = effstr.str();
+    auto c = const_cast<char*>(ostr.c_str());
     boxEff->copy_label(c);
     boxEff->redraw_label();
+
+    stringstream per;
+    per << setiosflags(ios::fixed) << setprecision(1) << effper * 100 << '%';
+    string perstr = per.str();
+    auto pc = const_cast<char*>(perstr.c_str());
+    O_Per->copy_label(pc);
+    O_Per->redraw_label();
 
     if (I_AutoGen->value())
         OptPrev();
@@ -397,6 +406,8 @@ int main(int argc, char** argv) {
             groupDecompSet->end();
 
             effp = new progressbar(PADDING, groupDecompSet->y() + groupDecompSet->h() + MARGIN * 3, 150, 20, 0);
+
+            O_Per = new Fl_Box(PADDING + 10, effp->y(), 25, 20);
 
             I_Calc = new Fl_Check_Button(effp->x(), effp->y() - MARGIN * 2.5, 150, 20, "CALC after DECOMP");
             I_Calc->tooltip("Calculate the weights after decomposition and optimization, which is data-shared for calculation in small graphs but is not efficient to get the partition data in large graphs.");

@@ -84,7 +84,8 @@ class progressbar : public Fl_Widget {
     double progress;
 protected:
     void draw() {
-        fl_color(Color::dark_red);
+        fl_color(Color::dark_yellow);
+        fl_line_style(Line_style::solid);
         fl_rectf(x(), y(), w() * progress, h());
         fl_color(Color::black);
         fl_rect(x(), y(), w(), h());
