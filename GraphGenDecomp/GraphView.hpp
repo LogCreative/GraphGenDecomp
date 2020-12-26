@@ -168,6 +168,7 @@ public:
 
 	}
 
+    // 使用新数据刷新视图
 	void RefreshView(string _dir, string _fil = "\0") {
         nodeCoord.clear();
         edgeSave.clear();
@@ -180,7 +181,10 @@ public:
 			MultiPrevReader opr(_dir, _fil);
             for (auto f : opr.storedNodeq)
                 updateCoord(f.second, f.first);
+            for (auto f : opr.storedFile)
+                edgeSave[f.first] = f.second.adjListGraph;
 		}
+        refreshMaxWeight();
         redraw();
 	}
 
@@ -188,54 +192,11 @@ public:
 private:
     map<fileNo, map<int, pair<float, float>>> nodeCoord;	        // 存储节点坐标
     map < fileNo, map<int, vector<GraphCommon::edge>>> edgeSave;    // 存储文件边集
+    double maxWeight;                   // 最大边权重
+    map<fileNo, int[4]> fborder;        // 画布边界
 
-    pair<int, int> getNodeCanvasCoord(pair<float, float>& ratioCoord, int* fborder) {
-        return make_pair(x() + ratioCoord.first * (fborder[0] - fborder[2]) + fborder[2],
-            y() + ratioCoord.second * (fborder[1] - fborder[3]) + fborder[3]);
-    }
 
-    // 画出画布
-    void drawFrame() {
-        double fsize = ceil(sqrt(nodeCoord.size()));
-        int fpos[2] = { 1,1 };          // 以右下为基准点
-        int fborder[4];
-        for (auto fg : nodeCoord) {
-            //定义画布边界
-            fborder[0] = w() * fpos[0] / fsize;           // 右边界
-            fborder[1] = h() * fpos[1] / fsize;           // 下边界
-            fborder[2] = w() * (fpos[0] - 1) / fsize;     // 左边界
-            fborder[3] = h() * (fpos[1] - 1) / fsize;     // 上边界
-            
-            //画出画布下的节点
-            for (auto n = fg.second.begin(); n != fg.second.end(); ++n) {
-                fl_color(Color::white);
-                auto ncoord = getNodeCanvasCoord(n->second, fborder);
-                fl_pie(ncoord.first, ncoord.second, 5, 5, 0, 360);
-                //标号
-                if (label)
-                    fl_draw(to_string(n->first).c_str(), ncoord.first, ncoord.second - 5);
-            }
-
-            // 画出画布下的边
-            for (auto n = edgeSave[fg.first].begin(); n != edgeSave[fg.first].end(); ++n) {
-
-            }
-
-            //更新下一个画布位置
-            if (fpos[0] + 1 > (int)fsize) {
-                fpos[1]++;
-                fpos[0] = 1;
-            }
-            else fpos[0]++;
-        }
-    }
-
-	void draw() {
-		fl_rectf(x(), y(), w(), h(), Color::black);
-        drawFrame();
-	}
-
-    // 蛇形矩阵 1021
+    // 蛇形矩阵 OJ-1021
     struct SnakeArray {
         int size;                       // 一维大小
         double step;                    // 每一步的步长
@@ -251,8 +212,8 @@ private:
             bound[3] = 0;               // 上边界
             pos[0] = 0;                 // 开始的x坐标
             pos[1] = 0;                 // 开始的y坐标
-            dir[0] = 1;                 // 开始前的移动方向：右
-            dir[1] = 0;
+            dir[0] = 1;                 // 移动方向向量x坐标
+            dir[1] = 0;                 // 移动方向向量y坐标
         }
 
         void dirNext() {
@@ -298,7 +259,7 @@ private:
         }
     };
 
-    void updateCoord(queue<int> &pnq, fileNo fn = 0) {
+    void updateCoord(queue<int>& pnq, fileNo fn = 0) {
         SnakeArray sa(ceil(sqrt(pnq.size())));
         while (!pnq.empty()) {
             int cur = pnq.front();
@@ -306,4 +267,94 @@ private:
             nodeCoord[fn][cur] = sa.getNextPos();
         }
     }
+
+    // 刷新最大边权重
+    void refreshMaxWeight() {
+        maxWeight = RESNODE;
+        for (auto f : edgeSave)
+            for (auto n : f.second)
+                for (auto e : n.second)
+                    if (e.weight > maxWeight)
+                        maxWeight = e.weight;
+    }
+
+    // 获取节点真正坐标
+    pair<int, int> getNodeCanvasCoord(pair<float, float>& ratioCoord, int* fborder) {
+        return make_pair(x() + ratioCoord.first * (fborder[0] - fborder[2]) + fborder[2],
+            y() + ratioCoord.second * (fborder[1] - fborder[3]) + fborder[3]);
+    }
+
+    // 更新画布边界
+    void refreshFborder() {
+        double fsize = ceil(sqrt(nodeCoord.size()));
+        int fpos[2] = { 1,1 };          // 以右下为基准点
+
+        for (auto f : nodeCoord) {
+            int fbordertmp[4] = {
+                w() * fpos[0] / fsize,           // 右边界
+                h() * fpos[1] / fsize,           // 下边界
+                w() * (fpos[0] - 1) / fsize,     // 左边界
+                h() * (fpos[1] - 1) / fsize      // 上边界
+            };
+
+            for (int i = 0; i < 4; ++i)
+                fborder[f.first][i] = fbordertmp[i];
+
+            // 更新下一个画布位置
+            if (fpos[0] + 1 > (int)fsize) {
+                fpos[1]++;
+                fpos[0] = 1;
+            }
+            else fpos[0]++;
+        }
+    }
+
+    // 画出画布
+    void drawFrame() {
+        refreshFborder();
+        for (auto fg : nodeCoord) {
+
+            // 画出画布下的边
+            for (auto n = edgeSave[fg.first].begin(); n != edgeSave[fg.first].end(); ++n)
+                for (auto e : n->second) {
+                    // 按照权重涂色
+                    fl_color(fl_color_average(Color::white, Color::black, e.weight / maxWeight));
+
+                    pair<int, int> beg = getNodeCanvasCoord(fg.second[n->first], fborder[fg.first]);
+
+                    // end 可能为虚节点
+                    pair<int, int> fin;
+                    if (e.end == -1) {
+                        fileNo tarFile = parseInt(e.targetFile);
+                        fin = getNodeCanvasCoord(nodeCoord[tarFile][e.targetNode], fborder[tarFile]);
+                        fl_line_style(Line_style::dash);        // 虚边虚线
+                    }
+                    else {
+                        fin = getNodeCanvasCoord(fg.second[e.end], fborder[fg.first]);
+                        fl_line_style(Line_style::solid);       // 实边实线
+                    }
+
+                    // 划线
+                    fl_line(beg.first, beg.second, fin.first, fin.second);
+                }
+
+            // 画出画布下的节点
+            for (auto n = fg.second.begin(); n != fg.second.end(); ++n) {
+                fl_color(Color::white);
+                auto ncoord = getNodeCanvasCoord(n->second, fborder[fg.first]);
+                fl_pie(ncoord.first, ncoord.second, 5, 5, 0, 360);
+                //标号
+                if (label)
+                    fl_draw(to_string(n->first).c_str(), ncoord.first, ncoord.second - 5);
+            }
+
+
+        }
+    }
+
+	void draw() {
+		fl_rectf(x(), y(), w(), h(), Color::black);
+        drawFrame();
+	}
+
 };
