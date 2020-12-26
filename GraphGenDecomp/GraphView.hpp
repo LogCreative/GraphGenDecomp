@@ -92,6 +92,20 @@ public:
 
 #endif // !pq
 
+struct nodeConn {
+    int data;
+    int connSize;
+    double connWeight;
+
+    nodeConn(int d = RESNODE, int c = -1, double w = 0) : data(d), connSize(c), connWeight(w) {}
+    ~nodeConn() = default;
+
+    bool operator<(nodeConn& r) const {
+        // 比较以连接量优先，方便展示
+        if (connSize < r.connSize) return true;
+        return false;
+    }
+};
 
 // 主器图读取器
 class SinglePrevReader : public Processor {
@@ -106,34 +120,32 @@ public:
         nodeConn* nodeConnArr = new nodeConn[nsize];
 
         int i = 0;
-		for (auto n : adjListGraph)
-			nodeConnArr[i++] = nodeConn(n.first, (int)n.second.size());
+        for (auto n : adjListGraph) {
+            double nWeight = 0;
+            for (auto e : n.second) {
+                nWeight += e.weight;
+                if (e.weight > maxEdgeWeight)
+                    maxEdgeWeight = e.weight;
+            }
+            if (nWeight > maxNodeWeight)
+                maxNodeWeight = nWeight;
+            nodeConnArr[i++] = nodeConn(n.first, (int)n.second.size(), nWeight);
+        }
         for (auto in : isoNodes)
-            nodeConnArr[i++] = nodeConn(in, 0);
+            nodeConnArr[i++] = nodeConn(in, 0, 0.0);
         priorityQueue_m<nodeConn> pnq(nodeConnArr, nsize);
         while (!pnq.isEmpty())
-            displayq.push(pnq.deQueue().data);
+            displayq.push(pnq.deQueue());
 
         delete[] nodeConnArr;
 	}
 	~SinglePrevReader() = default;
 
-	queue<int> displayq;
+	queue<nodeConn> displayq;
+    double maxNodeWeight = 0;
+    double maxEdgeWeight = 0;
 private:
-	string mainDir;
-
-	struct nodeConn {
-		int data;
-		int connSize;
-
-		nodeConn(int d = RESNODE, int c = -1) : data(d), connSize(c) {}
-		~nodeConn() = default;
-
-		bool operator<(nodeConn &r) const {
-			if (connSize < r.connSize) return true;
-			return false;
-		}
-	};
+    string mainDir;
 };
 
 // 子图读取器
@@ -149,6 +161,10 @@ public:
             fileNo curFile = parseFileInt(f);
             SinglePrevReader spr(f, false);
             storedNodeq[curFile] = spr.displayq;
+            if (spr.maxNodeWeight > maxNodeWeight)
+                maxNodeWeight = spr.maxNodeWeight;
+            if (spr.maxEdgeWeight > maxEdgeWeight)
+                maxEdgeWeight = spr.maxEdgeWeight;
 
 			fstream subfs(f, fstream::in);
 			FileUnit subfu;
@@ -158,7 +174,9 @@ public:
 	}
 	~MultiPrevReader() = default;
 
-    map<fileNo, queue<int>> storedNodeq;
+    double maxNodeWeight = 0;
+    double maxEdgeWeight = 0;
+    map<fileNo, queue<nodeConn>> storedNodeq;
 	map<fileNo, FileUnit> storedFile;
 };
 
@@ -170,12 +188,14 @@ public:
 
     // 使用新数据刷新视图
 	void RefreshView(string _dir, string _fil = "\0") {
-        nodeCoord.clear();
-        edgeSave.clear();
+        initPara();
+
 		if (_fil == "\0") {
             SinglePrevReader mpr(_dir, true);
             updateCoord(mpr.displayq);
             edgeSave[0] = mpr.adjListGraph;
+            maxNodeWeight = mpr.maxNodeWeight;
+            maxEdgeWeight = mpr.maxEdgeWeight;
 		}
 		else {
 			MultiPrevReader opr(_dir, _fil);
@@ -183,8 +203,9 @@ public:
                 updateCoord(f.second, f.first);
             for (auto f : opr.storedFile)
                 edgeSave[f.first] = f.second.adjListGraph;
+            maxNodeWeight = opr.maxNodeWeight;
+            maxEdgeWeight = opr.maxEdgeWeight;
 		}
-        refreshMaxWeight();
         redraw();
 	}
 
@@ -192,9 +213,20 @@ public:
 private:
     map<fileNo, map<int, pair<float, float>>> nodeCoord;	        // 存储节点坐标
     map < fileNo, map<int, vector<GraphCommon::edge>>> edgeSave;    // 存储文件边集
-    double maxWeight;                   // 最大边权重
+    map<fileNo, map<int, double>> nodeWeight;                       // 存储节点权重
+    double maxNodeWeight = 0;           // 最大节点权重
+    double maxEdgeWeight = 0;           // 最大边权重
     map<fileNo, int[4]> fborder;        // 画布边界
 
+    // 刷新初始参数
+    void initPara() {
+        nodeCoord.clear();
+        edgeSave.clear();
+        nodeWeight.clear();
+        maxNodeWeight = 0;
+        maxEdgeWeight = 0;
+        fborder.clear();
+    }
 
     // 蛇形矩阵 OJ-1021
     struct SnakeArray {
@@ -259,23 +291,14 @@ private:
         }
     };
 
-    void updateCoord(queue<int>& pnq, fileNo fn = 0) {
+    void updateCoord(queue<nodeConn>& pnq, fileNo fn = 0) {
         SnakeArray sa(ceil(sqrt(pnq.size())));
         while (!pnq.empty()) {
-            int cur = pnq.front();
+            nodeConn cur = pnq.front();
             pnq.pop();
-            nodeCoord[fn][cur] = sa.getNextPos();
+            nodeCoord[fn][cur.data] = sa.getNextPos();
+            nodeWeight[fn][cur.data] = cur.connWeight;
         }
-    }
-
-    // 刷新最大边权重
-    void refreshMaxWeight() {
-        maxWeight = RESNODE;
-        for (auto f : edgeSave)
-            for (auto n : f.second)
-                for (auto e : n.second)
-                    if (e.weight > maxWeight)
-                        maxWeight = e.weight;
     }
 
     // 获取节点真正坐标
@@ -318,7 +341,8 @@ private:
             for (auto n = edgeSave[fg.first].begin(); n != edgeSave[fg.first].end(); ++n)
                 for (auto e : n->second) {
                     // 按照权重涂色
-                    fl_color(fl_color_average(Color::white, Color::black, e.weight / maxWeight));
+                    float eWeight = (maxEdgeWeight == 0 ? 1.0 : e.weight / maxEdgeWeight);
+                    fl_color(fl_color_average(Color::white, Color::black, eWeight));
 
                     pair<int, int> beg = getNodeCanvasCoord(fg.second[n->first], fborder[fg.first]);
 
@@ -327,7 +351,7 @@ private:
                     if (e.end == -1) {
                         fileNo tarFile = parseInt(e.targetFile);
                         fin = getNodeCanvasCoord(nodeCoord[tarFile][e.targetNode], fborder[tarFile]);
-                        fl_line_style(Line_style::dash);        // 虚边虚线
+                        fl_line_style(Line_style::dashdot);        // 虚边虚线
                     }
                     else {
                         fin = getNodeCanvasCoord(fg.second[e.end], fborder[fg.first]);
@@ -340,12 +364,16 @@ private:
 
             // 画出画布下的节点
             for (auto n = fg.second.begin(); n != fg.second.end(); ++n) {
-                fl_color(Color::white);
+                // 按照连接权重涂色
+                float nWeight = (maxNodeWeight == 0 ? 1.0 : nodeWeight[fg.first][n->first] / maxNodeWeight);
+                fl_color(fl_color_average(Color::white, Color::black, nWeight));
                 auto ncoord = getNodeCanvasCoord(n->second, fborder[fg.first]);
-                fl_pie(ncoord.first, ncoord.second, 5, 5, 0, 360);
+                fl_pie(ncoord.first - 3, ncoord.second - 3, 6, 6, 0, 360);
                 //标号
-                if (label)
+                if (label) {
+                    fl_color(Color::white);
                     fl_draw(to_string(n->first).c_str(), ncoord.first, ncoord.second - 5);
+                }
             }
 
 
@@ -355,6 +383,7 @@ private:
 	void draw() {
 		fl_rectf(x(), y(), w(), h(), Color::black);
         drawFrame();
+        fl_line_style(Line_style::solid);
 	}
 
 };

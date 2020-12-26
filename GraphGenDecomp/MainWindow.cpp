@@ -252,12 +252,7 @@ int main(int argc, char** argv) {
 		argn++;
 #endif
     
-#ifdef _DEBUG
     const int FULLWIDTH = 1240;
-#else
-    const int FULLWIDTH = 640;
-#endif // _DEBUG
-
 	const int WIDTH = 640;
 	const int HEIGHT = 640;
 	const int PADDING = 20;
@@ -359,21 +354,14 @@ int main(int argc, char** argv) {
 
             I_MainNodeModifier = new Fl_Input(PADDING + 120, groupMainPara->y() + MARGIN, 100, 25, "Node Modifier");
             I_MainNodeModifier->tooltip("The node modifier of the main graph file.");
-#ifdef _DEBUG
             I_MainNodeModifier->value("");
-#else
-            I_MainNodeModifier->value("P");
-#endif // _DEBUG
+
 
             I_MainDilimeter = new Fl_Choice(PADDING + 120, I_MainNodeModifier->y() + MARGIN * 2.5, 100, 25, "Edge Dilimeter");
             I_MainDilimeter->tooltip("The edge dilimeter of the main graph file.");
             I_MainDilimeter->add("space");
             I_MainDilimeter->add("comma");
-#ifdef _DEBUG
             I_MainDilimeter->value(1);
-#else
-            I_MainDilimeter->value(0);
-#endif // _DEBUG
 
             groupMainPara->end();
 
@@ -471,7 +459,6 @@ int main(int argc, char** argv) {
         t->end();
         Fl_Group::current()->resizable(t);
 
-#ifdef _DEBUG
         Fl_Button* butMainPrev = new Fl_Button(t->x() + t->w() + MARGIN, t->y(), 100, 20, "Preview Main");
         butMainPrev->callback(MainPrev_CB);
 
@@ -479,13 +466,14 @@ int main(int argc, char** argv) {
         butOptPrev->callback(OptPrev_CB);
 
         I_AutoGen = new Fl_Check_Button(butOptPrev->x() + butOptPrev->w() + MARGIN, butOptPrev->y(), 100, 20, "Auto Preview");
+        I_AutoGen->value(1);
 
         I_NodeLabel = new Fl_Check_Button(I_AutoGen->x() + I_AutoGen->w() + MARGIN, I_AutoGen->y(), 100, 20, "Label Nodes");
         I_NodeLabel->value(1);
         I_NodeLabel->callback(NodeLabel_CB);
 
         GV = new GraphView(butMainPrev->x(), butMainPrev->y() + butMainPrev->h(), FULLWIDTH - WIDTH - MARGIN, HEIGHT - butMainPrev->h());
-#endif // _DEBUG
+
 	}
 	mainwin->end();
 	mainwin->show(argc, argv);
