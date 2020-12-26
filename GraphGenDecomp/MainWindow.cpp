@@ -197,18 +197,14 @@ void butDecomp_CB(Fl_Widget*, void*) {
         effp->update(effper);
         effstr << (gd.Check() ? "PASS " : "NOPASS ") << setiosflags(ios::fixed) << setprecision(1) << ev << '/' << aw;
     }
-    else effstr << (gd.Check() ? "PASS -/-" : "NOPASS -/-");
+    else { 
+        effp->update(0);
+        effstr << (gd.Check() ? "PASS -/-" : "NOPASS -/-"); 
+    }
     string ostr = effstr.str();
     auto c = const_cast<char*>(ostr.c_str());
     boxEff->copy_label(c);
     boxEff->redraw_label();
-
-    stringstream per;
-    per << setiosflags(ios::fixed) << setprecision(1) << effper * 100 << '%';
-    string perstr = per.str();
-    auto pc = const_cast<char*>(perstr.c_str());
-    O_Per->copy_label(pc);
-    O_Per->redraw_label();
 
     if (I_AutoGen->value())
         OptPrev();

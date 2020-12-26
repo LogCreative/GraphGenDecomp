@@ -89,6 +89,14 @@ protected:
         fl_rectf(x(), y(), w() * progress, h());
         fl_color(Color::black);
         fl_rect(x(), y(), w(), h());
+        stringstream pstr;
+        pstr << setiosflags(ios::fixed) << setprecision(1) << progress * 100 << '%';
+        if (progress > 0.0) {
+            if (progress < 0.4)
+                fl_color(Color::black);
+            else fl_color(Color::white);
+            fl_draw(const_cast<char*>(pstr.str().c_str()), x() + 10, y() + h() * 0.7);
+        }
     }
 public:
     progressbar(int X, int Y, int W, int H, double p):
