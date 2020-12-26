@@ -65,6 +65,11 @@ string GraphDecomp::ReachablePoints(int node) {
 	return nfd.ReachableNodes(node);
 }
 
+set<GraphCommon::node> GraphDecomp::ReachablePointsUI(int node) {
+	Finder nfd(subDir);
+	return nfd.getReachableNode(node);
+}
+
 string GraphDecomp::ShortestPath(int start, int end) {
 	Finder pfd(subDir);
 	return pfd.ShortestPath(start, end);
@@ -105,6 +110,7 @@ int Processor::getFiles(string fileFolderPath, string fileExtension, vector<stri
 
 string Processor::parseFileName(string filePath) {
 	auto beg = filePath.find_last_of('\\');
+	if (beg == filePath.length()) beg = filePath.find_last_of('/');
 	return filePath.substr(beg + 1, filePath.find_last_of('.') - beg - 1);
 }
 
@@ -759,12 +765,15 @@ string Finder::prtReachableNodes() const {
 
 string Finder::ReachableNodes(int beg) {
 	// BFS 寻找可达节点
-	queue<pair<fileNo, queue<int>>> visitFileQ;		// 文件访问队列
+	queue<pair<fileNo, queue<int>>> visitFileQ;			// 文件访问队列
 	fileNo init = findStoredFile(beg);
 	if (init <= 0) {
-		if (init == 0)								// 没有被存储 
+		if (init == 0) {								// 没有被存储 
+			reachableNodesO = set<node>({ node(beg) });
 			return "Node " + to_string(beg) + " is not stored!";
-		return "Num of Nodes: 0";										// 或者是孤立节点
+		}
+		reachableNodesO.clear();
+		return "Num of Nodes: 0";						// 或者是孤立节点
 	}
 	visitFileQ.push(make_pair(init, queue<int>({ beg })));
 	bool flag = true;								// 自身开始不作为可达节点
@@ -784,8 +793,10 @@ string Finder::ReachableNodes(int beg) {
 			int tn = subVisitq.front();
 			subVisitq.pop();
 			if (flag) flag = false;
-			else reachableNodes.insert(tn);
-
+			else {
+				reachableNodes.insert(tn);
+				reachableNodesO.insert(node(tn, fq.first));
+			}
 			for (auto e : subGraphs[fq.first].adjListGraph[tn]) {
 				fileNo tarNo = parseInt(e.targetFile);
 				if (e.end != -1) { // 实边
@@ -810,6 +821,11 @@ string Finder::ReachableNodes(int beg) {
 	}
 
 	return "Num of Nodes:" + to_string(reachableNodes.size()) + '\n' + prtReachableNodes();
+}
+
+set<GraphCommon::node> Finder::getReachableNode(int node) {
+	ReachableNodes(node);
+	return reachableNodesO;
 }
 
 void Finder::prtPath(int cur, int target, int finish) {

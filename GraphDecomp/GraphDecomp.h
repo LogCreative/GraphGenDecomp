@@ -83,9 +83,9 @@ public:
 	// 节点的定义，首先用于算法
 	struct node {
 		int data;							// 点的标识符
+		fileNo file;				// 节点存储文件位置
 
-		node() : data(RESNODE) {}
-		node(int d) : data(d) {}
+		node(int d = RESNODE, fileNo f = RESNODE) : data(d), file(f) {}
 		~node() = default;
 
 		// 输出函数，不会含有前缀
@@ -107,6 +107,11 @@ public:
 			else return ss;
 			n = nt;
 			return ss;
+		}
+
+		friend bool operator<(const node& l, const node& r) {
+			if (l.data < r.data) return true;
+			return false;
 		}
 
 	};
@@ -440,6 +445,8 @@ public:
 	/* (3) 子图上算法 */
 	// - 指定一个点，列出计算所有经有向边可达的节点
 	string ReachablePoints(int node);
+	set<node> ReachablePointsUI(int node);
+
 	// - 指定两个点，输出最短路径
 	// 如果指定的节点不存在，报错即可
 	string ShortestPath(int start, int end);
@@ -607,6 +614,8 @@ public:
 	~Finder();
 	// 可达节点
 	string ReachableNodes(int node);
+	// 可达节点(UI)
+	set<node> getReachableNode(int node);
 	// 最短路径
 	string ShortestPath(int start, int end);
 private:
@@ -629,6 +638,8 @@ private:
 
 	// 打印路径
 	void prtPath(int cur, int target, int finish);
+
+	set<node> reachableNodesO;				// （为UI使用的）可达点集
 };
 
 

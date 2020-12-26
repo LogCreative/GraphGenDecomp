@@ -47,6 +47,10 @@ void globalRefresh() {
     R_PREFIX = strlen(I_MainNodeModifier->value()) == 0 ? '\0' : I_MainNodeModifier->value()[0];
 }
 
+void ClearGV() {
+    GV->nodeR.clear();
+}
+
 void MainPrev() {
     globalRefresh();
     GV->RefreshView(G_Mfilename->value());
@@ -106,8 +110,10 @@ void Gen_CB(Fl_Widget*, void*) {
     else if (strcmp(I_ModeChoice->text(), "append") == 0) gg.AppendGraph(parseInt(I_LineCount->value()));
 
     G_Mfilename->value(G_MfilenameG->value());          // ´«µÝ²ÎÊý
-    if (I_AutoGen->value())
+    if (I_AutoGen->value()) {
+        ClearGV();
         MainPrev();
+    }
 
 }
 
@@ -206,8 +212,10 @@ void butDecomp_CB(Fl_Widget*, void*) {
     boxEff->copy_label(c);
     boxEff->redraw_label();
 
-    if (I_AutoGen->value())
+    if (I_AutoGen->value()) {
+        ClearGV();
         OptPrev();
+    }
 }
 
 void Reach_CB(Fl_Widget*, void*) {
@@ -215,7 +223,26 @@ void Reach_CB(Fl_Widget*, void*) {
 
     globalRefresh();
 
-    O_FinderUtil->value(gdr.ReachablePoints(parseInt(I_NodeStart->value())).c_str());
+    set<GraphCommon::node> rns = gdr.ReachablePointsUI(parseInt(I_NodeStart->value()));
+
+    stringstream rss;
+    if (rns.empty())
+        rss << "No reachable nodes!" << endl;
+    else if (rns.size() == 1 && rns.begin()->file == RESNODE)
+        rss << "Node " << rns.begin()->data << " is not stored!" << endl;
+    else {
+        rss << "Num of Node:" << rns.size() << endl;
+        for (auto n = rns.begin(); n != rns.end(); ++n) {
+            rss << n->data << ' ';
+        }
+        rss << endl;
+    }
+    O_FinderUtil->value(rss.str().c_str());
+
+    if (I_AutoGen->value()) {
+        GV->nodeR = rns;
+        OptPrev();
+    }
 }
 
 void Shortest_CB(Fl_Widget*, void*) {
@@ -227,10 +254,12 @@ void Shortest_CB(Fl_Widget*, void*) {
 }
 
 void MainPrev_CB(Fl_Widget*, void*) {
+    ClearGV();
     MainPrev();
 }
 
 void OptPrev_CB(Fl_Widget*, void*) {
+    ClearGV();
     OptPrev();
 }
 
@@ -412,7 +441,7 @@ int main(int argc, char** argv) {
             boxEff = new Fl_Box(PADDING, groupDecompSet->y() + groupDecompSet->h() + MARGIN * 4, 150, 50, "-/-");
             boxEff->tooltip("Homogeneity Check Status  Cut edge loss / Total edge weight");
 
-            Fl_Button* butCheck = new Fl_Button(boxEff->x() + boxEff->w() + MARGIN, groupDecompSet->y() + groupDecompSet->h() + MARGIN * 3, 140, 25, "CHK ONLY");
+            Fl_Button* butCheck = new Fl_Button(boxEff->x() + boxEff->w() + MARGIN, groupDecompSet->y() + groupDecompSet->h() + MARGIN * 3, 140, 25, "CALC ONLY");
             butCheck->tooltip("ONLY check the homogeneity between the main graph and subgraphs & calculate the weights, without any modification towards original files.");
             butCheck->callback(butCheck_CB);
 

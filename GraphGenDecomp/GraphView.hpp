@@ -209,15 +209,17 @@ public:
 		}
         redraw();
 	}
-
+    
     int label = 2;                                                  // 节点标注状态
+    set<GraphCommon::node> nodeR;       // 可达点标记 
 private:
     map<fileNo, map<int, pair<float, float>>> nodeCoord;	        // 存储节点坐标
     map < fileNo, map<int, vector<GraphCommon::edge>>> edgeSave;    // 存储文件边集
     map<fileNo, map<int, double>> nodeWeight;                       // 存储节点权重
     double maxNodeWeight = 0;           // 最大节点权重
     double maxEdgeWeight = 0;           // 最大边权重
-    map<fileNo, int[4]> fborder;        // 画布边界
+    map<fileNo, int[4]> fborder;        // 画布边界   
+    bool dim = false;                   // 暗下来
 
     // 刷新初始参数
     void initPara() {
@@ -333,25 +335,28 @@ private:
         }
     }
 
-    void drawNodes() {
-        for (auto fg : nodeCoord) {
+    void drawNode(fileNo file, int node) {
+        
+            // 按照连接权重涂色
+            float nWeight = (maxNodeWeight == 0 ? 1.0 : nodeWeight[file][node] / maxNodeWeight);
+            if (dim) nWeight *= 0.5;
+            fl_color(fl_color_average(Color::white, Color::black, nWeight));
 
-            // 画出画布下的节点
-            for (auto n = fg.second.begin(); n != fg.second.end(); ++n) {
-                // 按照连接权重涂色
-                float nWeight = (maxNodeWeight == 0 ? 1.0 : nodeWeight[fg.first][n->first] / maxNodeWeight);
-                fl_color(fl_color_average(Color::white, Color::black, nWeight));
-                auto ncoord = getNodeCanvasCoord(n->second, fborder[fg.first]);
-                fl_pie(ncoord.first - 3, ncoord.second - 3, 6, 6, 0, 360);
-                //标号
-                if (label == 2) {
-                    fl_color(Color::white);
-                    fl_draw(to_string(n->first).c_str(), ncoord.first, ncoord.second - 5);
-                }
+            auto ncoord = getNodeCanvasCoord(nodeCoord[file][node], fborder[file]);
+            fl_pie(ncoord.first - 3, ncoord.second - 3, 6, 6, 0, 360);
+            //标号
+            if (label == 2) {
+                if (dim) fl_color(fl_color_average(Color::white, Color::black, 0.5));
+                else fl_color(Color::white);
+                fl_draw(to_string(node).c_str(), ncoord.first, ncoord.second - 5);
             }
+        
+    }
 
-
-        }
+    void drawNodes() {
+        for (auto fg : nodeCoord)
+            for (auto n = fg.second.begin(); n != fg.second.end(); ++n)
+                drawNode(fg.first, n->first);
     }
 
     void drawEdge() {
@@ -362,7 +367,7 @@ private:
                 for (auto e : n->second) {
                     // 按照权重涂色
                     float eWeight = (maxEdgeWeight == 0 ? 1.0 : e.weight / maxEdgeWeight);
-
+                    if (dim) eWeight *= 0.5;
 
                     pair<int, int> beg = getNodeCanvasCoord(fg.second[n->first], fborder[fg.first]);
 
@@ -385,13 +390,21 @@ private:
         }
     }
 
+    void drawRNodes() {
+        for (auto n = nodeR.begin(); n != nodeR.end(); ++n)
+            drawNode(n->file, n->data);
+    }
 
 	void draw() {
 		fl_rectf(x(), y(), w(), h(), Color::black);
         refreshFborder();
+        if (!nodeR.empty()) dim = true;
         drawEdge();
         if (label > 0)
             drawNodes();
+        dim = false;
+        if (!nodeR.empty())
+            drawRNodes();
 	}
 
 };
