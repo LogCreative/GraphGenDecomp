@@ -438,7 +438,7 @@ Kerninghan-Lin 算法的主要过程：对于两个集合A,B计算D值，循环�
 首先需要计算每一对元素的邻接权重矩阵，需要进行\\
 \$n\^{}2\$次计算。
 
-如果将n个元素几乎平均地分配到元素个数为\textbar P\textbar 个集合中，共有n/\textbar P\textbar 个集合，则需要进行对每两个集合间的每两个元素计算，需要\$C\emph{\{\textbackslash frac\{n\}\{\textbar P\textbar\}\}\^{}2C}\{\textbar P\textbar\}\^{}2=O(n\^{}2)\$次计算，算出损失值。
+如果将n个元素几乎平均地分配到元素个数为\textbar P\textbar 个集合中，共有n/\textbar P\textbar 个集合，则需要进行对每两个集合间的每两个元素计算，需要\$C\_\{\textbackslash frac\{n\}\{\textbar P\textbar\}\}\^{}2\textbar P\textbar\^{}2=O(n\^{}2)\$次计算，算出损失值。
 
 最后计算总权重，计算损失矩阵上对角线部分（包含对角线）的和。
 
@@ -491,8 +491,80 @@ SPFA
 dijkstra 更适合于多子图上最短路径的寻找，没有使用排除访问的方法。
 
 \hypertarget{header-n214}{%
-\subsection{图预览(选做)}\label{header-n214}}
+\subsubsection{性能评估}\label{header-n214}}
 
-尚未开始。
+在评测时，20s 左右都是可以接受的，所以：
+
+\begin{itemize}
+\item
+  对于 \$0\textbackslash leq n\textbackslash leq 1000\$ 的图，都可以使用
+  \texttt{hardest} 模式，以期获得更好的分解效果。
+\item
+  对于 \$1000 \textless{} n\textbackslash leq 3000\$ 的图，都可以使用
+  \texttt{harder} 模式，时间上不仅可以缩减为 \texttt{hardest} 的
+  \$\textbackslash frac\{2\}\{3\}\$，效果上甚至可能会比 \texttt{hardest}
+  的要略好，因为都是局部最优算法，并不一定是全局最优。
+\item
+  对于 \$3000 \textless{} n \textbackslash leq 7000\$ 的图，都可以使用
+  \texttt{medium} 模式，进一步缩减时间，并保证比 \texttt{harder}
+  更高的性价比。
+\item
+  对于 \$n \textgreater{} 7000\$ 的图，使用 \texttt{bfs}
+  模式节约时间，Kerninghan-Lin
+  算法所需要的时间过长，尽管效果提升可能比较明显。但是 \texttt{bfs} 模式
+  可以保证平稳的 50 \textbackslash\% 割边比例，也即保证基线的
+  \$\textbackslash frac\{1\}\{3\}\$ 优化率。
+\item
+  如果分割限制比例向下调整，则算法就需要降档，以满足时间限制。当然，从时间复杂度的分析来看，分割成过细的子图会导致评估割边权重部分耗费过多的时间，可以考虑关闭
+  \texttt{CLAC\ after\ DECOMP} 选项以期大幅减少时间耗费量与内存占用率。
+\end{itemize}
+
+\hypertarget{header-n227}{%
+\subsection{图预览}\label{header-n227}}
+
+为了可视化图的分割情况，拓展性地创建了图预览器，便于分析结果。
+
+首先设置了一些小的结构：
+
+\begin{itemize}
+\item
+  \texttt{priorityQueue\_m}
+  是手写的优先队列（最小化堆），便于从一个数组直接建堆，节约时间。
+\item
+  \texttt{nodeConn}
+  是一个小型的节点连接结构。用于后面的节点分布和涂色计算。
+\item
+  \texttt{SinglePrevReader} 单图读取器是 \texttt{Processor}
+  的派生类，用于读取单个图的节点情况与连接边情况。
+\item
+  \texttt{MultiPrevReader} 多图读取器是 \texttt{Processor}
+  的派生类，用于读取多个图的节点情况与连接边情况，其中一些参量是通过每个文件初始化
+  \texttt{SinglePrevReader} 直接获得的。
+\end{itemize}
+
+\texttt{GraphView} 是 FLTK 库中 \texttt{Fl\_Widget}
+的子类，用于展示图形。
+
+外部通过调用 \texttt{RefreshView}
+函数刷新视图，传入文件路径和过滤器（可选），在初始化参量后，计算所有节点中最大的连接权重节点和最大边权重，用于后面的涂色。调用
+\texttt{redraw} 绘制图形。
+
+\texttt{redraw} 即调用 \texttt{draw()} 函数。
+
+\begin{itemize}
+\item
+  首先会通过 \texttt{refreshFborder()}
+  更新每个文件的画布边界，布局格子的边长为最近的大的平方根。
+\item
+  接着绘制有向边。由于方向在切割问题的切割上没有特别的作用，所以在此处没有标定方向。有向边的颜色透明度等于权重/全局最大权重，如果是内部边，为白色；如果是虚边，为黄色。
+\item
+  接着绘制节点。主界面有三个选项可以选择：\texttt{None}
+  表示不绘制节点，\texttt{Node} 表示仅绘制圆点，\texttt{Node\ +\ Label}
+  表示既绘制圆点也标记节点编号。节点的不透明度等于节点的发出边权重和/全局最大值。
+\item
+  而节点位置的确定由结构体 \texttt{SnakeArray} 获得
+  (OJ-1021)，由外至里，节点所连接的其他节点数递增，中心区域最多，格子的边长也是最近的大的平方根
+  + 1。
+\end{itemize}
 
 \end{document}

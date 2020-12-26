@@ -285,7 +285,7 @@ void Decomposer::optimizeParts(set<int>& A, set<int>& B) {
 				B.erase(bk[l]);
 				A.insert(bk[l]);
 			}
-		} while (sol != onepass);
+		} while (G > 0 && sol != onepass);
 	}
 }
 
@@ -764,7 +764,7 @@ string Finder::ReachableNodes(int beg) {
 	if (init <= 0) {
 		if (init == 0)								// 没有被存储 
 			return "Node " + to_string(beg) + " is not stored!";
-		return "";										// 或者是孤立节点
+		return "Num of Nodes: 0";										// 或者是孤立节点
 	}
 	visitFileQ.push(make_pair(init, queue<int>({ beg })));
 	bool flag = true;								// 自身开始不作为可达节点

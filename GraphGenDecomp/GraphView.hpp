@@ -3,7 +3,8 @@
 #include "../GUI_facilities.h"
 
 /*开发记录：
-	2020 / 12 / 24 ~					接口
+	2020 / 12 / 24 ~ 2020 / 12 / 25             小型结构
+    2020 / 12 / 25 ~ 2020 / 12 / 26             展示算法
 */
 
 // Snake Distribution
@@ -107,7 +108,7 @@ struct nodeConn {
     }
 };
 
-// 主器图读取器
+// 单图读取器
 class SinglePrevReader : public Processor {
 public:
     SinglePrevReader(string _mainDir = "\0", bool raw = true) : mainDir(_mainDir) {
@@ -148,7 +149,7 @@ private:
     string mainDir;
 };
 
-// 子图读取器
+// 多图读取器
 class MultiPrevReader : public Processor {
 public:
 	MultiPrevReader(string _subDir, string _fil) {
@@ -371,12 +372,10 @@ private:
                         fileNo tarFile = parseInt(e.targetFile);
                         fl_color(fl_color_average(Color::yellow, Color::black, eWeight));
                         fin = getNodeCanvasCoord(nodeCoord[tarFile][e.targetNode], fborder[tarFile]);
-                        fl_line_style(Line_style::solid);        // 虚边虚线
                     }
                     else {
                         fl_color(fl_color_average(Color::white, Color::black, eWeight));
                         fin = getNodeCanvasCoord(fg.second[e.end], fborder[fg.first]);
-                        fl_line_style(Line_style::solid);       // 实边实线
                     }
 
                     // 划线
