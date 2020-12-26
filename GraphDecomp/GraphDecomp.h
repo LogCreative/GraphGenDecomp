@@ -391,7 +391,7 @@ private:
 			else if (e.end == -1) e.end = e.targetNode;
 		}
 		adjListGraph[e.start].push_back(e);
-		if (adjListGraph.find(e.end) == adjListGraph.end())
+		if (adjListGraph.find(e.end) == adjListGraph.end() && e.end != -1)		// 虚节点不再此图中注册
 			adjListGraph[e.end] = vector<edge>({});		// 占位符
 	}
 
