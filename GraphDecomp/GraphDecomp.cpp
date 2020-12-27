@@ -216,11 +216,13 @@ int Decomposer::getMaxDinSet(set<int>& S) {
 	double Dzmax = diffCol[zmax];
 	auto z = S.begin();
 	++z;
-	for (; z != S.end(); ++z)
+	for (; z != S.end(); ++z) {
 		if (diffCol[*z] > Dzmax) {
 			zmax = *z;
 			Dzmax = diffCol[*z];
 		}
+		showProcess((++step * 1.0) / steps);
+	}
 	return zmax;
 }
 
@@ -234,6 +236,7 @@ pair<int, int> Decomposer::getMaxGainPair(set<int>& A, set<int>& B) {
 				selecPair = make_pair(a, b);
 				gainmax = gaintmp;
 			}
+			showProcess((++step * 1.0) / steps);
 		}
 	}
 	return selecPair;
@@ -242,7 +245,9 @@ pair<int, int> Decomposer::getMaxGainPair(set<int>& A, set<int>& B) {
 void Decomposer::optimizeParts(set<int>& A, set<int>& B) {
 	if (sol != rough) {
 		double G = INF;
+		int steptmp = step;
 		do {
+			step = steptmp;				// 进度回滚
 			calcDiffMat(A, B);
 			set<int> Ap = A;
 			set<int> Bp = B;
@@ -315,6 +320,7 @@ void Decomposer::insertPartTmp(int input) {
 	if (connNodes.find(input) != connNodes.end()) {
 		connNodes.erase(input);
 		partTmp.insert(input);
+		showProcess((++step) * 1.0 / steps);
 		if (partTmp.size() == n) {
 			partitions.push(partTmp);
 			partTmp.clear();
@@ -362,6 +368,9 @@ void Decomposer::Kerninghan_Lin() {
 	for (auto n : adjListGraph)
 		connNodes.insert(n.first);
 
+	// 计算总子步数
+	calcTotalSteps(connNodes.size(), n);
+
 	if (sol == bfs) { BFS();  return; }
 	
 	// 每一步都是局部最优
@@ -405,6 +414,48 @@ void Decomposer::allocateIsoNodes() {
 		partitions.push(isoSet);
 }
 
+void Decomposer::calcTotalSteps(int N, int n) {
+	if (sol == rough || sol == bfs)
+		steps = N;
+	else if (sol == ll)
+		steps = N * (N - n);
+	else if (sol == onepass)
+		steps = N * (N - n) * 0.25;
+	else
+		steps = N * N * N * (1.0 - n * n * 1.0 / (N * N)) / 6.0;
+	
+	time(&start);			// 记录起始时间
+	pwin->show();
+}
+
+void Decomposer::showProcess(double progress) {
+	//pdep->update(process);
+	//pwin->redraw();
+	
+#ifdef _DEBUG
+	cout << "\rDecomposing Progress:" << setprecision(3) << progress * 100 << '%';
+	fflush(stdout);
+#else //整数时刷新
+	if ((int)(progress * 100) != prevp) {
+		prevp = (int)(progress * 100);
+		stringstream tipstr;
+		if (progress > 1) progress = 1;
+		tipstr << "Decomposing Progress: " << (int)(progress * 100) << "%";
+		if (prevp != 0 && prevp < 100) {
+			time_t curtime;
+			time(&curtime);
+			long int remain = (curtime - start) * (1 / progress - 1.0);
+			if (remain <= 60)
+				tipstr << "   Remain: " << remain << "s";
+			else
+				tipstr << "   Remain: " << setiosflags(ios::fixed) << setprecision(1) << remain / 60.0 << "min";
+		}
+		pwin->label(tipstr.str().c_str());
+	}
+#endif // _DEBUG
+	
+}
+
 string ValueProcessor::OuputPartitions() const {
 	stringstream ss;
 	queue<set<int>> outputPartq = partitions;
@@ -439,6 +490,7 @@ void Decomposer::outputSubAdjGraphs() const {
 		}
 		subfs.close();
 	}
+	pwin->hide();
 }
 
 double ValueProcessor::Evaluate(){

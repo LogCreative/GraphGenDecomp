@@ -19,6 +19,7 @@
 #include <FL/fl_draw.H>
 #include <FL/Fl_Check_Button.H>
 #include <FL/Fl_Help_View.H>
+#include "std_lib_facilities.h"
 
 //------------------------------------------------------------------------------
 
@@ -109,5 +110,20 @@ public:
     }
 };
 
+struct ProgressWindow : public Fl_Window {
+public:
+    ProgressWindow(int w, int h, const char* l) :
+        Fl_Window(w, h, l) {
+    }
+    virtual ~ProgressWindow() { }
+private:
+    void draw() {
+        Fl_Window::draw();
+        fl_color(Color::black);
+        fl_draw("Decomposing", 0, 10);
+    }
+};
+
+// TODO: A different thread to update progress.
 
 #endif // GUI_FACILITIES_GURAD

@@ -57,6 +57,7 @@
 
 #include "../std_lib_facilities.h"
 //#include "../GraphCommon.hpp"
+#include "../GUI_facilities.h"
 
 #define INF -1							// 负无穷大距离
 
@@ -527,6 +528,12 @@ public:
 	void BFS();
 private:
 	DecompSol sol;
+	
+	int steps = 0;							// 总步数
+	int step = 0;							// 当前进度
+	Fl_Window* pwin = new Fl_Window(600, 0, "Progress");					// 进度窗口
+	time_t start;							// 起始时间
+	int prevp = -1;
 
 	map<int, double> diffCol;				// 内外差列
 	set<int> connNodes;						// 连通节点集合
@@ -552,6 +559,12 @@ private:
 	void insertPartTmp(int input);
 	// 获取最大连接权重节点
 	int getMaxConnWeightNode();
+	
+	// 计算总子步数
+	void calcTotalSteps(int N, int n);
+	// 显示计算进度
+	void showProcess(double p);
+
 
 };
 
