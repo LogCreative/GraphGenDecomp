@@ -6,6 +6,7 @@
 
 #ifndef STD_LIB_FACILITIES_GUARD
 #define STD_LIB_FACILITIES_GUARD 1
+#define _HAS_STD_BYTE 0             // C++ 17
 
 #include <algorithm>
 #include <cmath>
@@ -21,6 +22,7 @@
 #include <set>
 #include <map>
 #include <io.h>
+#include <coroutine>
 
 using namespace std;
 

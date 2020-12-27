@@ -19,6 +19,7 @@
 #include <FL/fl_draw.H>
 #include <FL/Fl_Check_Button.H>
 #include <FL/Fl_Help_View.H>
+#include "std_lib_facilities.h"
 
 //------------------------------------------------------------------------------
 
