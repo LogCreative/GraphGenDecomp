@@ -124,4 +124,6 @@ private:
     }
 };
 
+// TODO: A different thread to update progress.
+
 #endif // GUI_FACILITIES_GURAD

@@ -423,17 +423,37 @@ void Decomposer::calcTotalSteps(int N, int n) {
 		steps = N * (N - n) * 0.25;
 	else
 		steps = N * N * N * (1.0 - n * n * 1.0 / (N * N)) / 6.0;
+	
+	time(&start);			// 记录起始时间
 	pwin->show();
 }
 
-void Decomposer::showProcess(double process) {
+void Decomposer::showProcess(double progress) {
 	//pdep->update(process);
 	//pwin->redraw();
-	stringstream tipstr; 
-	tipstr << "Decomposing Progress: " << setprecision(3) << process * 100 << '%';
-	pwin->label(tipstr.str().c_str());
-	/*cout << "\rDecomposing Progress:" << setprecision(3) << process * 100 << '%';
-	fflush(stdout);*/
+	
+#ifdef _DEBUG
+	cout << "\rDecomposing Progress:" << setprecision(3) << progress * 100 << '%';
+	fflush(stdout);
+#else //整数时刷新
+	if ((int)(progress * 100) != prevp) {
+		prevp = (int)(progress * 100);
+		stringstream tipstr;
+		if (progress > 1) progress = 1;
+		tipstr << "Decomposing Progress: " << (int)(progress * 100) << "%";
+		if (prevp != 0 && prevp < 100) {
+			time_t curtime;
+			time(&curtime);
+			long int remain = (curtime - start) * (1 / progress - 1.0);
+			if (remain <= 60)
+				tipstr << "   Remain: " << remain << "s";
+			else
+				tipstr << "   Remain: " << setiosflags(ios::fixed) << setprecision(1) << remain / 60.0 << "min";
+		}
+		pwin->label(tipstr.str().c_str());
+	}
+#endif // _DEBUG
+	
 }
 
 string ValueProcessor::OuputPartitions() const {

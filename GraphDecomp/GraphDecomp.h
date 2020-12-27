@@ -531,7 +531,9 @@ private:
 	
 	int steps = 0;							// 总步数
 	int step = 0;							// 当前进度
-	ProgressWindow* pwin = new ProgressWindow(600, 0, "Progress");					// 进度窗口
+	Fl_Window* pwin = new Fl_Window(600, 0, "Progress");					// 进度窗口
+	time_t start;							// 起始时间
+	int prevp = -1;
 
 	map<int, double> diffCol;				// 内外差列
 	set<int> connNodes;						// 连通节点集合
