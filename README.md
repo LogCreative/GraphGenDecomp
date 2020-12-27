@@ -1,11 +1,15 @@
 # 图生成与分解器
 2020年秋季 问题求解与实践大作业
 
-*李子龙 518070910095 F1903301*
+![](report/header.png)
 
 > Copyright (C) 2020 by LogCreative, All Rights Reserved. To learn more about the author, please visit https://github.com/LogCreative .
 >
 > (LC) No. 0211
+
+![](report/program.gif)
+
+> 更为详尽的说明，请见 [项目报告](https://github.com/LogCreative/GraphGenDecomp/blob/master/report/GraphGenDecomp.pdf)。
 
 ## 问题重述
 
