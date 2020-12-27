@@ -527,6 +527,8 @@ public:
 	void BFS();
 private:
 	DecompSol sol;
+	int steps = 0;							// 总步数
+	int step = 0;							// 当前进度
 
 	map<int, double> diffCol;				// 内外差列
 	set<int> connNodes;						// 连通节点集合
@@ -552,6 +554,11 @@ private:
 	void insertPartTmp(int input);
 	// 获取最大连接权重节点
 	int getMaxConnWeightNode();
+	
+	// 计算总子步数
+	void calcTotalSteps(int N, int n);
+	// 显示计算进度
+	void showProcess(double p);
 
 };
 

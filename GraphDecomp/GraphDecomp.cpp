@@ -216,11 +216,13 @@ int Decomposer::getMaxDinSet(set<int>& S) {
 	double Dzmax = diffCol[zmax];
 	auto z = S.begin();
 	++z;
-	for (; z != S.end(); ++z)
+	for (; z != S.end(); ++z) {
 		if (diffCol[*z] > Dzmax) {
 			zmax = *z;
 			Dzmax = diffCol[*z];
 		}
+		showProcess((++step * 1.0) / steps);
+	}
 	return zmax;
 }
 
@@ -234,6 +236,7 @@ pair<int, int> Decomposer::getMaxGainPair(set<int>& A, set<int>& B) {
 				selecPair = make_pair(a, b);
 				gainmax = gaintmp;
 			}
+			showProcess((++step * 1.0) / steps);
 		}
 	}
 	return selecPair;
@@ -242,7 +245,9 @@ pair<int, int> Decomposer::getMaxGainPair(set<int>& A, set<int>& B) {
 void Decomposer::optimizeParts(set<int>& A, set<int>& B) {
 	if (sol != rough) {
 		double G = INF;
+		int steptmp = step;
 		do {
+			step = steptmp;				// 进度回滚
 			calcDiffMat(A, B);
 			set<int> Ap = A;
 			set<int> Bp = B;
@@ -315,6 +320,7 @@ void Decomposer::insertPartTmp(int input) {
 	if (connNodes.find(input) != connNodes.end()) {
 		connNodes.erase(input);
 		partTmp.insert(input);
+		showProcess((++step) * 1.0 / steps);
 		if (partTmp.size() == n) {
 			partitions.push(partTmp);
 			partTmp.clear();
@@ -362,6 +368,9 @@ void Decomposer::Kerninghan_Lin() {
 	for (auto n : adjListGraph)
 		connNodes.insert(n.first);
 
+	// 计算总子步数
+	calcTotalSteps(connNodes.size(), n);
+
 	if (sol == bfs) { BFS();  return; }
 	
 	// 每一步都是局部最优
@@ -403,6 +412,22 @@ void Decomposer::allocateIsoNodes() {
 	}
 	if (!isoSet.empty())
 		partitions.push(isoSet);
+}
+
+void Decomposer::calcTotalSteps(int N, int n) {
+	if (sol == rough || sol == bfs)
+		steps = N;
+	else if (sol == ll)
+		steps = N * (N - n);
+	else if (sol == onepass)
+		steps = N * (N - n) * 0.25;
+	else
+		steps = N * N * N * (1.0 - n * n * 1.0 / (N * N)) / 6.0;
+}
+
+void Decomposer::showProcess(double process) {
+	cout << "\rDecomposing Progress:" << setprecision(3) << process * 100 << '%';
+	fflush(stdout);
 }
 
 string ValueProcessor::OuputPartitions() const {
