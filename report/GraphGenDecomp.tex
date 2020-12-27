@@ -53,16 +53,18 @@
 \begin{CJK}{UTF8}{song}
 \title{图生成与分解器}
 \author{李子龙\\\small 电子信息与电气工程学院\\\small 计算机科学与技术专业\\\small 518070910095 F1903301}
-\date{2020 年 12 月 26 日}
+\date{2020 年 12 月 27 日}
 \maketitle
 \normalsize
 
-\begin{tcolorbox}
-    Copyright \copyright\ 2020 by LogCreative, All Rights Reserved.
-    
-    To learn more about the author, please visit \href{https://github.com/LogCreative}{https://github.com/LogCreative}.
+\tableofcontents
 
-    (LC) No. 0211
+\begin{tcolorbox}
+  Copyright \copyright\ 2020 by LogCreative, All Rights Reserved.
+  
+  To learn more about the author, please visit \href{https://github.com/LogCreative}{https://github.com/LogCreative}.
+
+  (LC) No. 0211
 \end{tcolorbox}
 
 \section{问题重述}
@@ -413,6 +415,35 @@ dijkstra 更适合于多子图上最短路径的寻找，没有使用排除访�
 
 \section{性能评估}
 
+\subsection{理论分析}
+
+\begin{figure}[H]
+  \centering
+  \input{division.tex}
+  \caption{分解示意}
+\end{figure}
+
+对算法进行时间复杂度的分析。设总节点数为$N$，需要将子集的最大节点数目降到$n$以下，二分方法需要分解层数为
+\begin{equation}
+  l = \left\lceil \log_2\frac{N}{n} \right\rceil
+\end{equation}
+\begin{description}
+  \item[\texttt{order} \texttt{bfs}] 遍历节点，运算次数为 $N$。
+  \item[\texttt{medium} \texttt{harder}] 采用 $D$ 计算优先算法，在第 $i$ 层的比较中，共需要优化 $2^{i-1}$ 对，对于 \texttt{harder} 算法而言，没优化一对需要子优化 $\frac{N}{2^i}$ 次，每次需要遍历2个 $D$ 表，每个表有 $\frac{N}{2^i}$ 个元素。故 \texttt{harder} 的时间复杂度为：
+  \begin{equation}
+    \sum_{i=1}^l 2^{i-1}\times\frac{N}{2^i}\times 2 \times \frac{N}{2^i} = \sum_{i=1}^l \frac{N^2}{2^i} = N^2\left(1-\frac{1}{2^l}\right)\approx N^2\left(1-\frac{n}{N}\right)=N^2-Nn
+  \end{equation} 
+  而 \texttt{medium} 恰好时上述的 $\frac{1}{4}$。当然，如果计算 $G$ 时循环没有通过进度会进行回溯。
+  \item[\texttt{hardest}] 采用 $g$ 计算优先算法，这一次不是遍历 $D$ 表，而是对每个节点对都计算 $g$。 故 \texttt{hardest} 的时间复杂度为：
+  \begin{equation}
+    \sum_{i=1}^l 2^{i-1}\times\frac{N}{2^i}\times \left(\frac{N}{2^i}\right)^2 = \sum_{i=1}^l \frac{N^3}{2^{2i+1}} \approx \frac{N^3}{6}\left(1-\frac{n^2}{N^2}\right) = \frac{N^3}{6} - \frac{Nn^2}{6}
+  \end{equation}
+\end{description}
+
+以上分析将会作为进度显示的依据，该程序通过更新一个弹出窗口的标题来显示进度与剩余时间。值得一提的是，为了让刷新没有那么频繁，只有到整数进度时才会进行刷新。
+
+\subsection{实验验证}
+
 通过图生成器生成了 9 个图文件，之后通过图分解器分解为原图规模的 5 \%，计时并查看结果。
 
 \begin{table}[H]
@@ -464,7 +495,7 @@ dijkstra 更适合于多子图上最短路径的寻找，没有使用排除访�
 
 \section{拓展：图预览}
 
-\begin{figure}
+\begin{figure}[H]
   \centering
   \input{snake.tex}
   \includegraphics[height=8cm]{snake.png}
