@@ -423,11 +423,17 @@ void Decomposer::calcTotalSteps(int N, int n) {
 		steps = N * (N - n) * 0.25;
 	else
 		steps = N * N * N * (1.0 - n * n * 1.0 / (N * N)) / 6.0;
+	pwin->show();
 }
 
 void Decomposer::showProcess(double process) {
-	cout << "\rDecomposing Progress:" << setprecision(3) << process * 100 << '%';
-	fflush(stdout);
+	//pdep->update(process);
+	//pwin->redraw();
+	stringstream tipstr; 
+	tipstr << "Decomposing Progress: " << setprecision(3) << process * 100 << '%';
+	pwin->label(tipstr.str().c_str());
+	/*cout << "\rDecomposing Progress:" << setprecision(3) << process * 100 << '%';
+	fflush(stdout);*/
 }
 
 string ValueProcessor::OuputPartitions() const {
@@ -464,6 +470,7 @@ void Decomposer::outputSubAdjGraphs() const {
 		}
 		subfs.close();
 	}
+	pwin->hide();
 }
 
 double ValueProcessor::Evaluate(){

@@ -110,5 +110,18 @@ public:
     }
 };
 
+struct ProgressWindow : public Fl_Window {
+public:
+    ProgressWindow(int w, int h, const char* l) :
+        Fl_Window(w, h, l) {
+    }
+    virtual ~ProgressWindow() { }
+private:
+    void draw() {
+        Fl_Window::draw();
+        fl_color(Color::black);
+        fl_draw("Decomposing", 0, 10);
+    }
+};
 
 #endif // GUI_FACILITIES_GURAD

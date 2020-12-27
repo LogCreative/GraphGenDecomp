@@ -1,6 +1,6 @@
 #include "../GraphGen/GraphGen.h"
 #include "../GraphDecomp/GraphDecomp.h"
-#include "../GUI_facilities.h"
+//#include "../GUI_facilities.h"
 
 /*开发记录：
 	2020 / 12 / 24 ~ 2020 / 12 / 25             小型结构
