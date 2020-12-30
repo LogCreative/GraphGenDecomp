@@ -9,7 +9,11 @@
 
 ![](https://cdn.jsdelivr.net/gh/LogCreative/report/program.gif)
 
-> 更为详尽的说明，请见 [项目报告](https://github.com/LogCreative/GraphGenDecomp/blob/master/report/GraphGenDecomp.pdf)。
+> **使用：** 可以在 [发布栏](https://github.com/LogCreative/GraphGenDecomp/releases) 看到该软件的 Windows 发布版。（其余版本的编译正在尝试，欢迎PR）该软件可以随机生成子图，并根据比较有时间效率的启发式算法分割图形以限制每个子图的大小，有时间预期并可视化图。
+> 
+> **编译：** 需要在 VS 的 include 文件夹加入 FL 的头文件以及 lib 文件夹加入已经编译好的 FLTK 库文件。或者仅查看命令行未使用 FLTK 库的部分。
+> 
+> **原理：** 更为详尽的说明，请见 [项目报告](https://github.com/LogCreative/GraphGenDecomp/blob/master/report/GraphGenDecomp.pdf)。
 
 ## 问题重述
 
@@ -214,6 +218,15 @@ $n^2$次计算。
 SPFA 在形式上和BFS非常类似，不同的是BFS中一个点出了队列就不可能重新进入队列，但是SPFA中一个点可能在出队列之后再次被放入队列，也就是一个点改进过其它的点之后，过了一段时间可能本身被改进，于是再次用来改进其它的点，这样反复迭代下去。这种算法相比于 dijkstra 更适合于多子图上最短路径的寻找，没有使用排除访问的方法。
 
 ### 性能评估
+
+
+对算法进行时间复杂度的分析。设总节点数为N，需要将子集的最大节点数目降到n以下，
+- `order`,`bfs` 遍历节点，运算次数为 N。
+- `harder` 采用 D 计算优先算法，在第 i 层的比较中，共需要优化 2^{i-1} 对，对于 `harder` 算法而言，没优化一对需要子优化 N/2^i 次，每次需要遍历2个 D 表，每个表有 N/2^i 个元素。故 `harder` 的时间复杂度为：N^2-Nn
+- `medium` 恰好时上述的 1/4。当然，如果计算 G 时循环没有通过进度会进行回溯。
+- `hardest` 采用 g 计算优先算法，这一次不是遍历 D 表，而是对每个节点对都计算 g。 故 `hardest` 的时间复杂度为：N^3/6-Nn^2/6
+
+以上分析将会作为进度显示的依据，该程序通过更新一个弹出窗口的标题来显示进度与剩余时间。值得一提的是，为了让刷新没有那么频繁，只有到整数进度时才会进行刷新。
 
 在评测时，20s 左右都是可以接受的，所以：
 - 对于 $0\leq n\leq 1000$ 的图，都可以使用 `hardest` 模式，以期获得更好的分解效果。
