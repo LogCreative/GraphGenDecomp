@@ -854,17 +854,18 @@ string Finder::ReachableNodes(int beg) {
 				reachableNodes.insert(tn);
 				reachableNodesO.insert(node(tn, fq.first));
 			}
-			for (auto e : subGraphs[fq.first].adjListGraph[tn]) {
-				fileNo tarNo = parseInt(e.targetFile);
-				if (e.end != -1) { // 实边
-					if (subGraphs[fq.first].nodeVisited.find(e.end) == subGraphs[fq.first].nodeVisited.end())
-						subVisitq.push(e.end);
+			for (auto e = subGraphs[fq.first].adjListGraph[tn].begin(); e != subGraphs[fq.first].adjListGraph[tn].end(); ++e) {
+				fileNo tarNo = parseInt(e->targetFile);
+				if (e->end != -1) { // 实边
+					if (subGraphs[fq.first].nodeVisited.find(e->end) == subGraphs[fq.first].nodeVisited.end()) {
+						subVisitq.push(e->end);
+						subGraphs[fq.first].nodeVisited.insert(e->end);	// 防止环路，需要标记，不对称标记时可行的，因为在访问下一个文件后会访问到这里。
+					}
 				}
 				else { // 虚边
 					if (subGraphs.find(tarNo) == subGraphs.end() ||
-						(subGraphs[tarNo].nodeVisited.find(e.targetNode) == subGraphs[tarNo].nodeVisited.end()))
-						visitFileMap[tarNo].push(e.targetNode);
-
+						(subGraphs[tarNo].nodeVisited.find(e->targetNode) == subGraphs[tarNo].nodeVisited.end()))
+						visitFileMap[tarNo].push(e->targetNode);
 				}
 			}
 
