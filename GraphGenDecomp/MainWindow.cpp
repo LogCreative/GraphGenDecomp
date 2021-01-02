@@ -1,5 +1,5 @@
 // Ö÷´°¿Ú
-
+// UI is defined in the pre-compile command.
 #include "GraphView.hpp"            // Contains All Headers
 
 // Tab Generator

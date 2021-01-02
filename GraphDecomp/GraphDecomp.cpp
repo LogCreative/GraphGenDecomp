@@ -423,16 +423,18 @@ void Decomposer::calcTotalSteps(int N, int n) {
 		steps = N * (N - n) * 0.25;
 	else
 		steps = N * N * N * (1.0 - n * n * 1.0 / (N * N)) / 6.0;
-	
+
+#ifdef UI
 	time(&start);			// 记录起始时间
 	pwin->show();
+#endif // UI
 }
 
 void Decomposer::showProcess(double progress) {
 	//pdep->update(process);
 	//pwin->redraw();
 	
-#ifdef _DEBUG
+#ifndef UI
 	cout << "\rDecomposing Progress:" << setprecision(3) << progress * 100 << '%';
 	fflush(stdout);
 #else //整数时刷新
@@ -490,7 +492,9 @@ void Decomposer::outputSubAdjGraphs() const {
 		}
 		subfs.close();
 	}
+#ifdef UI
 	pwin->hide();
+#endif // UI
 }
 
 double ValueProcessor::Evaluate(){

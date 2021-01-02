@@ -531,9 +531,12 @@ private:
 	
 	int steps = 0;							// 总步数
 	int step = 0;							// 当前进度
+
+#ifdef UI
 	Fl_Window* pwin = new Fl_Window(600, 0, "Progress");					// 进度窗口
 	time_t start;							// 起始时间
 	int prevp = -1;
+#endif // UI
 
 	map<int, double> diffCol;				// 内外差列
 	set<int> connNodes;						// 连通节点集合
@@ -564,8 +567,6 @@ private:
 	void calcTotalSteps(int N, int n);
 	// 显示计算进度
 	void showProcess(double p);
-
-
 };
 
 // 优化器

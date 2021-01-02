@@ -1,6 +1,6 @@
 // ·Ö½âÆ÷µÄUI
-
-#include "../GUI_facilities.h"
+// UI is defined in the pre-compile command.
+//#include "../GUI_facilities.h"
 #include "../GraphDecomp/GraphDecomp.h"
 
 // GLOBALS
