@@ -7,7 +7,7 @@
 >
 > (LC) No. 0211
 
-![](https://cdn.jsdelivr.net/gh/LogCreative/GraphGenDecomp/report/program.gif)
+![](./report/program.gif)
 
 ## 存储库说明
 
@@ -15,7 +15,7 @@
 可以在 [发布栏](https://github.com/LogCreative/GraphGenDecomp/releases) 看到该软件的 Windows 发布版。（其余版本的编译正在尝试，欢迎PR）该软件可以随机生成子图，并根据比较有时间效率的启发式算法分割图形以限制每个子图的大小，有时间预期并可视化图。
 
 ### 编译
-需要在 VS 的 include 文件夹加入 FL 的头文件以及 lib 文件夹加入已经编译好的 FLTK 库文件。或者仅查看命令行未使用 FLTK 库的部分。请将输出从 x64 调整为 x86，因为 FLTK 不支持 64 位平台的编译，需要预编译头 WIN32。
+需要在 Visual Studio 2019 的 include 文件夹加入 FL 的头文件以及 lib 文件夹加入已经编译好的 FLTK 库文件。或者仅查看命令行未使用 FLTK 库的部分。请将输出从 x64 调整为 x86，因为 FLTK 不支持 64 位平台的编译，需要预编译头 `WIN32`。
 
 ### 结构
 
@@ -49,8 +49,7 @@ GraphGenDecomp
 
 ## 问题重述
 
-开发一个图自动生成器
-1. 随机生成一个有向图，将图放置到指定文件中，每一行如下格式
+1. 开发一个图自动生成器: 随机生成一个有向图，将图放置到指定文件中，每一行如下格式
     - <节点编号>：节点
 	- <出发节点编号、结束节点编号、权重>：有向边
 2. 开发一个图分解器
