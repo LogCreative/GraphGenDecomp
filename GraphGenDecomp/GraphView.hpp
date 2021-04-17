@@ -377,7 +377,7 @@ private:
                 drawNode(fg.first, n->first);
     }
     
-    void drawEdge(GraphCommon::edge e, fileNo startF, bool stress = false) {
+    void drawEdge(GraphCommon::edge e, fileNo startF, bool crossing, bool stress = false) {
         // 按照权重涂色
         float eWeight = (maxEdgeWeight == 0 ? 1.0 : e.weight / maxEdgeWeight);
         if (dim) eWeight *= 0.5;
@@ -389,7 +389,7 @@ private:
         pair<int, int> fin;
         if (e.end == -1) {
             fileNo tarFile = parseInt(e.targetFile);
-            fl_color(fl_color_average(hg, bg, eWeight));
+            fl_color(fl_color_average(hg, bg, eWeight / 2));
             fin = getNodeCanvasCoord(nodeCoord[tarFile][e.targetNode], fborder[tarFile]);
         }
         else {
@@ -398,10 +398,11 @@ private:
         }
 
         // 划线
-        fl_line(beg.first, beg.second, fin.first, fin.second);
+        if (e.end != -1 || crossing)
+            fl_line(beg.first, beg.second, fin.first, fin.second);
     }
 
-    void drawEdge(GraphCommon::node start, GraphCommon::node end, bool stress = false) {
+    void drawEdge(GraphCommon::node start, GraphCommon::node end, bool crossing, bool stress = false) {
         //find the edge
         GraphCommon::edge de;
         for (auto e : edgeSave[start.file][start.data])
@@ -409,15 +410,15 @@ private:
                 de = e;
                 break;
             }
-        drawEdge(de, start.file, stress);
+        drawEdge(de, start.file, crossing, stress);
     }
 
-    void drawEdge() {
+    void drawEdge(bool crossing) {
         for (auto fg : nodeCoord) {
             // 画出画布下的边
             for (auto n = edgeSave[fg.first].begin(); n != edgeSave[fg.first].end(); ++n)
                 for (auto e : n->second)
-                    drawEdge(e, fg.first);
+                    drawEdge(e, fg.first,crossing);
 
         }
     }
@@ -436,7 +437,7 @@ private:
             auto next = pathRtmp.front();
             pathRtmp.pop();
 
-            drawEdge(prev, next, true);
+            drawEdge(prev, next, true, true);
             drawNode(prev.file, prev.data);
             prev = next;
         }
@@ -448,7 +449,8 @@ private:
 		fl_rectf(x(), y(), w(), h(), bg);
         refreshFborder();
         if (!nodeR.empty() || !pathR.empty()) dim = true;
-        drawEdge();
+        drawEdge(true);
+        drawEdge(false);
         if (label > 0)
             drawNodes();
         dim = false;
