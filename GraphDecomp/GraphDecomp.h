@@ -45,12 +45,6 @@
 		  5：审查代码并提问（10%，查问代码内容，必要情况下删掉部分代码，要求限时复现）
 */
 
-/*
-- 不使用虚节点，直接分配节点：不需要考虑文件顺序对于节点位置的考虑 这才是正解
-- 如果一个节点的发出边过多，我们再考虑虚节点的问题。
-- 如果不同的图中有相同的点，不能计算，这是不公平的。
-*/
-
 
 #ifndef GRAPH_DECOMP_GUARD
 #define GRAPH_DECOMP_GURAD 1
@@ -415,7 +409,7 @@ public:
 	set<int> nodeVisited;				// 访问过的节点集
 };
 
-enum DecompSol { rough, bfs, onepass, ll, kl };		// 分解方案类型
+enum DecompSol { rough, bfs, onepass, ll, kl, file };		// 分解方案类型
 
 class GraphDecomp : GraphCommon {
 public:

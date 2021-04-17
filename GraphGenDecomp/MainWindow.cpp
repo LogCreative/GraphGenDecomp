@@ -189,6 +189,7 @@ void butDecomp_CB(Fl_Widget*, void*) {
     else if (strcmp(I_DecompAlg->text(), "medium") == 0) _sol = onepass;
     else if (strcmp(I_DecompAlg->text(), "bfs") == 0) _sol = bfs;
     else if (strcmp(I_DecompAlg->text(), "order") == 0) _sol = rough;
+    else if (strcmp(I_DecompAlg->text(), "from partition") == 0) _sol = file;
 
     globalRefresh();
 
@@ -443,6 +444,7 @@ int main(int argc, char** argv) {
             I_DecompAlg->add("medium");
             I_DecompAlg->add("bfs");
             I_DecompAlg->add("order");
+            I_DecompAlg->add("from partition");
             I_DecompAlg->value(0);
 
             groupDecompSet->end();

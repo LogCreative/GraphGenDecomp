@@ -17,10 +17,10 @@ GraphDecomp::GraphDecomp(int _n, string _mainDir, string _subDir) :
 }
 
 void GraphDecomp::ResetSubFolder() {
-	string command_rd = "rd /s /q \"" + subDir + '\"';
-	system(command_rd.c_str());
-	string command_md = "md \"" + subDir + '\"';
-	system(command_md.c_str());
+	//string command_rd = "rd /s /q \"" + subDir + '\"';
+	//system(command_rd.c_str());
+	//string command_md = "md \"" + subDir + '\"';
+	//system(command_md.c_str());
 }
 
 string GraphDecomp::Decomp(DecompSol sol, bool calc) {
@@ -371,7 +371,37 @@ void Decomposer::Kerninghan_Lin() {
 	// 计算总子步数
 	calcTotalSteps(connNodes.size(), n);
 
-	if (sol == bfs) { BFS();  return; }
+	if (sol == bfs) { 
+		// BFS
+		BFS();  
+		return; 
+	}
+	else if (sol == file) {
+		// 从文件读取
+		ifstream part;
+		part.open(subDir + "\\partition.txt");
+		if (part.fail()) {
+#ifdef _DEBUG
+			std::cout << subDir << "\\partition.txt" << std::endl;
+			std::cout << "Cannot open partition.txt!" << std::endl;
+#endif // _DEBUG
+			return;
+		}
+		
+		while (!part.eof()) {
+			string partstr;
+			getline(part, partstr);
+			stringstream partss(partstr);
+			if (partstr == "") continue;
+			int node;
+			set<int> nodeset;
+			while (partss >> node)
+				nodeset.insert(node);
+			partitions.push(nodeset);
+		}
+		outputSubAdjGraphs();
+		return;
+	}
 	
 	// 每一步都是局部最优
 	// 最终可能是全局最优
