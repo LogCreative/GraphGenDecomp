@@ -37,6 +37,7 @@ Fl_Box* O_Per = NULL;
 GraphView* GV = NULL;
 Fl_Check_Button* I_AutoGen = NULL;
 Fl_Choice* I_NodeLabel = NULL;
+Fl_Check_Button* I_DarkMode = NULL;
 
 void globalRefresh() {
     if (strcmp(I_MainDilimeter->text(), "space") == 0) R_DILIMETER = ' ';
@@ -51,12 +52,12 @@ void globalRefresh() {
 
 void MainPrev() {
     globalRefresh();
-    GV->RefreshView(G_Mfilename->value());
+    GV->RefreshView(G_Mfilename->value(), I_DarkMode->value());
 }
 
 void OptPrev(bool dim = false) {
     if(!dim) globalRefresh();
-    GV->RefreshView(G_Sfilename->value(), OPTFIL);
+    GV->RefreshView(G_Sfilename->value(), I_DarkMode->value(), OPTFIL);
 }
 
 void PickFileG_CB(Fl_Widget*, void*) {
@@ -274,6 +275,11 @@ void OptPrev_CB(Fl_Widget*, void*) {
     OptPrev();
 }
 
+void DarkMode_CB(Fl_Widget*, void*) {
+    GV->Dark_Mode(I_DarkMode->value());
+    GV->redraw();
+}
+
 void NodeLabel_CB(Fl_Widget*, void*) {
     GV->label = I_NodeLabel->value();
     GV->redraw();
@@ -297,7 +303,7 @@ int main(int argc, char** argv) {
 		argn++;
 #endif
     
-    const int FULLWIDTH = 1240;
+    const int FULLWIDTH = 1340;
 	const int WIDTH = 640;
 	const int HEIGHT = 640;
 	const int PADDING = 20;
@@ -515,7 +521,11 @@ int main(int argc, char** argv) {
         I_AutoGen = new Fl_Check_Button(butOptPrev->x() + butOptPrev->w() + MARGIN, butOptPrev->y(), 100, 20, "Auto Preview");
         I_AutoGen->value(1);
 
-        I_NodeLabel = new Fl_Choice(I_AutoGen->x() + I_AutoGen->w() + MARGIN + 80, I_AutoGen->y(), 150, 20, "Label Nodes");
+        I_DarkMode = new Fl_Check_Button(I_AutoGen->x() + I_AutoGen->w() + MARGIN, I_AutoGen->y(), 100, 20, "Dark Mode");
+        I_DarkMode->value(1);
+        I_DarkMode->callback(DarkMode_CB);
+
+        I_NodeLabel = new Fl_Choice(I_DarkMode->x() + I_DarkMode->w() + MARGIN + 80, I_DarkMode->y(), 150, 20, "Label Nodes");
         I_NodeLabel->add("None");
         I_NodeLabel->add("Node");
         I_NodeLabel->add("Node + Label");

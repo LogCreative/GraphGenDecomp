@@ -188,8 +188,8 @@ public:
 	}
 
     // 使用新数据刷新视图
-	void RefreshView(string _dir, string _fil = "\0") {
-        initPara();
+	void RefreshView(string _dir, bool dark_mode, string _fil = "\0") {
+        initPara(dark_mode);
 
 		if (_fil == "\0") {
             SinglePrevReader mpr(_dir, true);
@@ -209,6 +209,19 @@ public:
 		}
         redraw();
 	}
+
+    void Dark_Mode(bool dark_mode) {
+        if (dark_mode) {
+            bg = Color::black;
+            fg = Color::white;
+            hg = Color::yellow;
+        }
+        else {
+            bg = Color::white;
+            fg = Color::black;
+            hg = Color::red;
+        }
+    }
     
     int label = 2;                                                  // 节点标注状态
     set<GraphCommon::node> nodeR;       // 可达点标记 
@@ -221,15 +234,19 @@ private:
     double maxEdgeWeight = 0;           // 最大边权重
     map<fileNo, int[4]> fborder;        // 画布边界   
     bool dim = false;                   // 暗下来
+    Fl_Color bg = NULL;
+    Fl_Color fg = NULL;
+    Fl_Color hg = NULL;
 
     // 刷新初始参数
-    void initPara() {
+    void initPara(bool dark_mode) {
         nodeCoord.clear();
         edgeSave.clear();
         nodeWeight.clear();
         maxNodeWeight = 0;
         maxEdgeWeight = 0;
         fborder.clear();
+        Dark_Mode(dark_mode);
     }
 
     // 蛇形矩阵 OJ-1021
@@ -341,14 +358,14 @@ private:
             // 按照连接权重涂色
             float nWeight = (maxNodeWeight == 0 ? 1.0 : nodeWeight[file][node] / maxNodeWeight);
             if (dim) nWeight *= 0.5;
-            fl_color(fl_color_average(Color::white, Color::black, nWeight));
+            fl_color(fl_color_average(fg, bg, nWeight));
 
             auto ncoord = getNodeCanvasCoord(nodeCoord[file][node], fborder[file]);
             fl_pie(ncoord.first - 3, ncoord.second - 3, 6, 6, 0, 360);
             //标号
             if (label == 2) {
-                if (dim) fl_color(fl_color_average(Color::white, Color::black, 0.5));
-                else fl_color(Color::white);
+                if (dim) fl_color(fl_color_average(fg, bg, 0.5));
+                else fl_color(fg);
                 fl_draw(to_string(node).c_str(), ncoord.first, ncoord.second - 5);
             }
         
@@ -372,11 +389,11 @@ private:
         pair<int, int> fin;
         if (e.end == -1) {
             fileNo tarFile = parseInt(e.targetFile);
-            fl_color(fl_color_average(Color::yellow, Color::black, eWeight));
+            fl_color(fl_color_average(hg, bg, eWeight));
             fin = getNodeCanvasCoord(nodeCoord[tarFile][e.targetNode], fborder[tarFile]);
         }
         else {
-            fl_color(fl_color_average(Color::white, Color::black, eWeight));
+            fl_color(fl_color_average(fg, bg, eWeight));
             fin = getNodeCanvasCoord(nodeCoord[startF][e.end], fborder[startF]);
         }
 
@@ -428,7 +445,7 @@ private:
     }
 
 	void draw() {
-		fl_rectf(x(), y(), w(), h(), Color::black);
+		fl_rectf(x(), y(), w(), h(), bg);
         refreshFborder();
         if (!nodeR.empty() || !pathR.empty()) dim = true;
         drawEdge();
