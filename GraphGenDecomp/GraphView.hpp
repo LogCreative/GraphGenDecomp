@@ -214,7 +214,7 @@ public:
         if (dark_mode) {
             bg = Color::black;
             fg = Color::white;
-            hg = Color::yellow;
+            hg = Color::dark_yellow;
         }
         else {
             bg = Color::white;
