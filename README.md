@@ -14,6 +14,8 @@
 ### 使用
 可以在 [发布栏](https://github.com/LogCreative/GraphGenDecomp/releases) 看到该软件的 Windows 发布版。（其余版本的编译正在尝试，欢迎PR）该软件可以随机生成子图，并根据比较有时间效率的启发式算法分割图形以限制每个子图的大小，有时间预期并可视化图。
 
+> **2021/4 更新** feat: AlgComplexity HW08 可以通过子文件目录中的 ``partition.txt`` 获取划分信息，对主图进行手动划分，以便进行可视化。子图目录暂时不支持中文目录。
+
 ### 编译
 需要在 Visual Studio 2019 的 include 文件夹加入 FL 的头文件以及 lib 文件夹加入已经编译好的 FLTK 库文件。或者仅查看命令行未使用 FLTK 库的部分。请将输出从 x64 调整为 x86，因为 FLTK 不支持 64 位平台的编译，需要预编译头 `WIN32`。
 
