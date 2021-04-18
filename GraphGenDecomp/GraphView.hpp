@@ -219,7 +219,7 @@ public:
         else {
             bg = Color::white;
             fg = Color::black;
-            hg = Color::red;
+            hg = fl_color_average(Color::red, bg, 0.5);
         }
     }
     
@@ -389,7 +389,7 @@ private:
         pair<int, int> fin;
         if (e.end == -1) {
             fileNo tarFile = parseInt(e.targetFile);
-            fl_color(fl_color_average(hg, bg, eWeight / 2));
+            fl_color(fl_color_average(hg, bg, eWeight));
             fin = getNodeCanvasCoord(nodeCoord[tarFile][e.targetNode], fborder[tarFile]);
         }
         else {
