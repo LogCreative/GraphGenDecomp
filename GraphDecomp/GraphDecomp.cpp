@@ -17,10 +17,13 @@ GraphDecomp::GraphDecomp(int _n, string _mainDir, string _subDir) :
 }
 
 void GraphDecomp::ResetSubFolder() {
-	//string command_rd = "rd /s /q \"" + subDir + '\"';
-	//system(command_rd.c_str());
-	//string command_md = "md \"" + subDir + '\"';
-	//system(command_md.c_str());
+	string command = "cd \"" + subDir + "\"\n";
+	command += "copy partition.txt ../partition.txt /Y \n";
+	command += "cd ..\n";
+	command += "rd /s /q \"" + subDir + '\"' + '\n';
+	command += "md \"" + subDir + '\"' + '\n';
+	command += "copy partition.txt \"" + subDir + "partition.txt\"\n";
+	system(command.c_str());
 }
 
 string GraphDecomp::Decomp(DecompSol sol, bool calc) {
