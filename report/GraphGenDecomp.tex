@@ -60,11 +60,9 @@
 \tableofcontents
 
 \begin{tcolorbox}
-  Copyright \copyright\ 2020 by LogCreative, All Rights Reserved.
+  Copyright \copyright\ 2020-2021 by LogCreative  (LC) No. 0211
   
   To learn more about the author, please visit \href{https://github.com/LogCreative}{https://github.com/LogCreative}.
-
-  (LC) No. 0211
 \end{tcolorbox}
 
 \section{问题重述}
@@ -493,7 +491,12 @@ dijkstra 更适合于多子图上最短路径的寻找，没有使用排除访�
     \item 如果分割限制比例向下调整，则算法就需要降档，以满足时间限制。当然，从时间复杂度的分析来看，分割成过细的子图会导致评估割边权重部分耗费过多的时间，可以考虑关闭 \texttt{CLAC after DECOMP} 选项以期大幅减少时间耗费量与内存占用率。
 \end{itemize}
 
-\section{拓展：图预览}
+\section{图预览}
+
+\subsection{方形子图预览}
+\begin{CJK}{UTF8}{kai}
+  问题求解与实践课程可视化拓展
+\end{CJK}
 
 \begin{figure}[H]
   \centering
@@ -555,6 +558,22 @@ dijkstra 更适合于多子图上最短路径的寻找，没有使用排除访�
   \item 最短路径的绘制是通过向图预览器注册 \texttt{queue<node> shortestPathO} 实现，最短路径就是一个节点队列，将节点之间通过是否为虚边相互连接。
   \item 以上两种情况绘制时都会将其余的部分变暗为原来的 50\%，仅突出可达节点或者是最短路径。
 \end{itemize}
+
+\subsection{从文件可视化图形}
+\begin{CJK}{UTF8}{kai}
+  算法与复杂性课程第 8 次作业第 4 题
+\end{CJK}
+\begin{figure}[h]
+  \centering
+  \subfigure[仅显示强连通分量]{\includegraphics[height=8cm]{file1.png}}
+  \subfigure[显示切割边]{\includegraphics[height=8cm]{file2.png}}
+  \caption{可视化强连通分量}
+  \label{fig:scc}
+\end{figure}
+
+提供输入分割信息的 API，以便使用自定义的分割方式可视化子图。将节点信息按照空格分割，每行代表一个分割，新建文件放入子图目录中的 \verb"partition.txt" 中（这个文件在刷新时会被保护，区别于自生成的 \verb"partitions.txt"，格式是一致的）。在算法选项 \verb"Algorithm" 中选择 \verb"from paritition" 选项。
+
+提供暗色模式 \verb"Dark Mode" 选项，以便切换主题颜色。由于有些时候分割文件会很多，所以提供了复制文件的进度。如果一个程序可以用于生成强连通分量，那么输出为标准格式就可以得到如图 \ref{fig:scc} 的可视化情形。如果希望仅显示强连通分量，可以将分解头和优化头都设置为分解头，这样就不会显示切割边。
 
 \bibliography{ref}
 

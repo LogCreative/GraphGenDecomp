@@ -224,7 +224,7 @@ int Decomposer::getMaxDinSet(set<int>& S) {
 			zmax = *z;
 			Dzmax = diffCol[*z];
 		}
-		showProcess((++step * 1.0) / steps);
+		showProcess((++step * 1.0) / steps, "Decomposing Progress:");
 	}
 	return zmax;
 }
@@ -239,7 +239,7 @@ pair<int, int> Decomposer::getMaxGainPair(set<int>& A, set<int>& B) {
 				selecPair = make_pair(a, b);
 				gainmax = gaintmp;
 			}
-			showProcess((++step * 1.0) / steps);
+			showProcess((++step * 1.0) / steps, "Decomposing Progress:");
 		}
 	}
 	return selecPair;
@@ -323,7 +323,7 @@ void Decomposer::insertPartTmp(int input) {
 	if (connNodes.find(input) != connNodes.end()) {
 		connNodes.erase(input);
 		partTmp.insert(input);
-		showProcess((++step) * 1.0 / steps);
+		showProcess((++step) * 1.0 / steps, "Decomposing Progress:");
 		if (partTmp.size() == n) {
 			partitions.push(partTmp);
 			partTmp.clear();
@@ -463,19 +463,19 @@ void Decomposer::calcTotalSteps(int N, int n) {
 #endif // UI
 }
 
-void Decomposer::showProcess(double progress) {
+void Decomposer::showProcess(double progress, string message) {
 	//pdep->update(process);
 	//pwin->redraw();
 	
 #ifndef UI
-	cout << "\rDecomposing Progress:" << setprecision(3) << progress * 100 << '%';
+	cout << "\r" << message << setprecision(3) << progress * 100 << '%';
 	fflush(stdout);
 #else //整数时刷新
 	if ((int)(progress * 100) != prevp) {
 		prevp = (int)(progress * 100);
 		stringstream tipstr;
 		if (progress > 1) progress = 1;
-		tipstr << "Decomposing Progress: " << (int)(progress * 100) << "%";
+		tipstr << message << (int)(progress * 100) << "%";
 		if (prevp != 0 && prevp < 100) {
 			time_t curtime;
 			time(&curtime);
@@ -509,14 +509,19 @@ string ValueProcessor::OuputPartitions() const {
 	return ss.str();
 }
 
-void Decomposer::outputSubAdjGraphs() const {
+void Decomposer::outputSubAdjGraphs() {
 	queue<set<int>> partTmp = partitions;
+	// 当输出子图时，就需要刷新进度条
+	steps = partTmp.size();
+	prevp = -1;
+	step = 0;
+	time(&start);
+
 	fileNo fileNum = 1;
 	while (!partTmp.empty()) {
 		set<int> s = partTmp.front();
 		partTmp.pop();
 		fstream subfs(getFileString(fileNum), fstream::out);
-		fileNum++;
 		for (auto n : s) {
 			subfs << node(n);
 			auto adjG = adjListGraph;
@@ -524,7 +529,10 @@ void Decomposer::outputSubAdjGraphs() const {
 				subfs << e;
 		}
 		subfs.close();
+		showProcess((double)(fileNum - 1) / steps, "Copying Files:");
+		fileNum++;
 	}
+
 #ifdef UI
 	pwin->hide();
 #endif // UI

@@ -547,7 +547,7 @@ private:
 	// 二分集合优化
 	void optimizeParts(set<int>& A, set<int>& B);
 	// 输出连通子图
-	void outputSubAdjGraphs() const;
+	void outputSubAdjGraphs();
 	// 分配孤立节点
 	void allocateIsoNodes();
 
@@ -560,7 +560,7 @@ private:
 	// 计算总子步数
 	void calcTotalSteps(int N, int n);
 	// 显示计算进度
-	void showProcess(double p);
+	void showProcess(double p, string message);
 };
 
 // 优化器
