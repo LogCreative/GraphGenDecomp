@@ -475,7 +475,7 @@ void Decomposer::showProcess(double progress, string message) {
 		prevp = (int)(progress * 100);
 		stringstream tipstr;
 		if (progress > 1) progress = 1;
-		tipstr << message << (int)(progress * 100) << "%";
+		tipstr << message << ' ' << (int)(progress * 100) << "%";
 		if (prevp != 0 && prevp < 100) {
 			time_t curtime;
 			time(&curtime);
@@ -515,7 +515,9 @@ void Decomposer::outputSubAdjGraphs() {
 	steps = partTmp.size();
 	prevp = -1;
 	step = 0;
+#ifdef UI
 	time(&start);
+#endif
 
 	fileNo fileNum = 1;
 	while (!partTmp.empty()) {
